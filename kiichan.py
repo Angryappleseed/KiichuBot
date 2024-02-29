@@ -45,8 +45,7 @@ else:
 default_prefix = config["prefix"]
 async def get_custom_prefix(bot, message):
     bot_mention = f'<@{bot.user.id}> '
-    kiichu_prefix = "KiichuBot "
-    prefixes = [kiichu_prefix, bot.default_prefix, bot_mention]
+    prefixes = [bot.default_prefix, bot_mention]
 
     if message.guild is not None:
         server_id = str(message.guild.id)
@@ -208,29 +207,13 @@ async def on_ready():
 #------------------------ON GUILD JOIN-------------------------#
 @bot.event
 async def on_guild_join(guild: discord.Guild) -> None:
-    welcome_channel = guild.system_channel
-    if welcome_channel is not None:
-        default_prefix = bot.default_prefix
-        welcome_message = f"""I'm KiichuBot, a multipurpose bot here to assist you.
-        Feel free to use my commands to enhance your server experience. 
-        My default prefix is set to `{default_prefix}`, but you can change this with the `{default_prefix}setprefix` command.
-        You can use `{default_prefix}help` to get started. Have fun! {emotes['comfy']}"""
-        embed = discord.Embed(title=f"Hi hi! It's KiichuBot {emotes['wave']}", 
-                              description=welcome_message, 
-                              color=colors["blue"]
-                              )
-        await welcome_channel.send(embed=embed)
-    async with aiosqlite.connect(f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db") as db:
-        await db.execute("INSERT INTO bot_guilds (guild_id, guild_name) VALUES (?, ?)", (guild.id, guild.name))
-        await db.commit()
+   pass
 
 
 #------------------------ON GUILD LEAVE-------------------------#
 @bot.event
 async def on_guild_remove(guild):
-    async with aiosqlite.connect(f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db") as db:
-        await db.execute("DELETE FROM bot_guilds WHERE guild_id = ?", (guild.id,))
-        await db.commit()
+    pass
 
 
 #------------------------ON DISCONNECT-------------------------#
@@ -319,6 +302,22 @@ async def on_command_error(context: Context, error) -> None:
         else:
             bot.logger.warning(
                 f"{context.author} (ID: {context.author.id}) tried to execute a trusted-user only command in the bot's DMs."
+            )
+
+
+    #-------------------USER IS NOT MODERATORr------------------------#
+    elif isinstance(error, exceptions.UserNotModerator):
+        embed = discord.Embed(
+            description=f"You are not a Moderator! {emotes['ded']}", color=colors["red"]
+        )
+        await context.send(embed=embed)
+        if context.guild:
+            bot.logger.warning(
+                f"{context.author} (ID: {context.author.id}) tried to execute a moderator only command in the guild {context.guild.name} (ID: {context.guild.id})."
+            )
+        else:
+            bot.logger.warning(
+                f"{context.author} (ID: {context.author.id}) tried to execute amoderator only command in the bot's DMs."
             )
 
 
