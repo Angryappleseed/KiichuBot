@@ -1,0 +1,72 @@
+CREATE TABLE IF NOT EXISTS `prefixes` (
+  `server_id` varchar(20) NOT NULL,
+  `prefix` varchar(20) NOT NULL,
+  PRIMARY KEY (`server_id`)
+);
+
+CREATE TABLE IF NOT EXISTS `bot_stats` (
+  `guild_count` INT NOT NULL,
+  `user_count` INT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS `bot_guilds` (
+    guild_id INTEGER PRIMARY KEY,
+    guild_name TEXT
+);
+
+CREATE TABLE IF NOT EXISTS `msglog_webhooks` (
+  `guild_id` varchar(20) NOT NULL,
+  `webhook_url` text NOT NULL,
+  PRIMARY KEY (`guild_id`)
+);
+
+CREATE TABLE IF NOT EXISTS `modlog_channels` (
+  `guild_id` varchar(20) NOT NULL,
+  `channel_id` varchar(20) NOT NULL,
+  PRIMARY KEY (`guild_id`)
+);
+
+
+CREATE TABLE IF NOT EXISTS `blacklist` (
+  `user_id` varchar(20) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE IF NOT EXISTS `warns` (
+  `id` int(11) NOT NULL,
+  `user_id` varchar(20) NOT NULL,
+  `server_id` varchar(20) NOT NULL,
+  `moderator_id` varchar(20) NOT NULL,
+  `reason` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE IF NOT EXISTS `onboarding` (
+  `guild_id` varchar(20) NOT NULL,
+  `welcome_message` text,
+  `goodbye_message` text,
+  `welcome_channel_id` varchar(20),
+  `auto_assign_roles` text,
+  `welcome_enabled` BOOLEAN DEFAULT TRUE,
+  `goodbye_enabled` BOOLEAN DEFAULT TRUE,
+  `sticky_roles_enabled` BOOLEAN DEFAULT 0,
+  PRIMARY KEY (`guild_id`)
+);
+
+
+CREATE TABLE IF NOT EXISTS `sticky_roles` (
+  `user_id` varchar(20) NOT NULL,
+  `guild_id` varchar(20) NOT NULL,
+  `role_ids` text,
+  PRIMARY KEY (`user_id`, `guild_id`)
+);
+
+
+CREATE TABLE IF NOT EXISTS `interaction_counts` (
+  `user_id` varchar(20) NOT NULL,
+  `interaction_type` varchar(255) NOT NULL,
+  `count` int(11) NOT NULL,
+  PRIMARY KEY (`user_id`, `interaction_type`)
+);
