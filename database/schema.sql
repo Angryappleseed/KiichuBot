@@ -4,15 +4,6 @@ CREATE TABLE IF NOT EXISTS `prefixes` (
   PRIMARY KEY (`server_id`)
 );
 
-CREATE TABLE IF NOT EXISTS `bot_stats` (
-  `guild_count` INT NOT NULL,
-  `user_count` INT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS `bot_guilds` (
-    guild_id INTEGER PRIMARY KEY,
-    guild_name TEXT
-);
 
 CREATE TABLE IF NOT EXISTS `msglog_webhooks` (
   `guild_id` varchar(20) NOT NULL,
@@ -61,12 +52,4 @@ CREATE TABLE IF NOT EXISTS `sticky_roles` (
   `guild_id` varchar(20) NOT NULL,
   `role_ids` text,
   PRIMARY KEY (`user_id`, `guild_id`)
-);
-
-
-CREATE TABLE IF NOT EXISTS `interaction_counts` (
-  `user_id` varchar(20) NOT NULL,
-  `interaction_type` varchar(255) NOT NULL,
-  `count` int(11) NOT NULL,
-  PRIMARY KEY (`user_id`, `interaction_type`)
 );

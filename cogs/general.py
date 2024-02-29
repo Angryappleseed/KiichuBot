@@ -99,6 +99,7 @@ class General(commands.Cog, name="general"):
         self.cog_descriptions = {
             'general': "Common commands for regular usage.",
             'miscellaneous': "Just random commands.",
+            'welcome': "Custom Welcome PNGs",
             'onboarding': "Commands for handling new members",
             'logging': "Commands for server logging and monitoring.",
             'moderation': "Commands to help moderate your server.",
@@ -113,7 +114,7 @@ class General(commands.Cog, name="general"):
     )
     @checks.not_blacklisted()
     async def help(self, ctx):
-        included_cogs = ["general", "miscellaneous", "onboarding", "logging", "moderation", "trusted", "owner"]
+        included_cogs = ["general", "miscellaneous", "welcome", "onboarding", "logging", "moderation", "trusted", "owner"]
         view = HelpView(ctx, included_cogs)
         embed = view.get_homescreen_embed()
         await ctx.send(embed=embed, view=view)

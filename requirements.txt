@@ -4,4 +4,5 @@ discord.py
 requests
 async-timeout
 PyNaCl
+pillow
 git+https://github.com/Rapptz/discord-ext-menus

@@ -2,7 +2,6 @@
 # KiichuBot v1.0.0
 # DEV: Angryappleseed (angryappleseed on discord)
 # Last Updated: Feb 28, 2024
-# Invite KiichuBot to your own server:
 
 import aiosqlite
 import asyncio
@@ -64,43 +63,6 @@ class KiichuBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.log_channel = {} 
-        self.update_stats = tasks.loop(hours=24)(self._update_stats)
-        self.sync_guilds_db = tasks.loop(hours=6)(self._sync_guilds_db)
-    
-    #Logs all current guild IDs and Names to database
-    async def _sync_guilds_db(self):
-        current_guild_ids = {str(guild.id) for guild in self.guilds}
-        async with aiosqlite.connect(f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db") as db:
-            # Fetch guild ids from database
-            async with db.execute("SELECT guild_id FROM bot_guilds") as cursor:
-                db_guild_ids = {str(row[0]) for row in await cursor.fetchall()}
-
-            # Remove guilds that are no longer in the bot
-            guilds_to_remove = db_guild_ids - current_guild_ids
-            for guild_id in guilds_to_remove:
-                await db.execute("DELETE FROM bot_guilds WHERE guild_id = ?", (guild_id,))
-
-            # Add or update current guilds
-            for guild_id in current_guild_ids:
-                guild = self.get_guild(int(guild_id))
-                await db.execute("INSERT OR REPLACE INTO bot_guilds (guild_id, guild_name) VALUES (?, ?)", 
-                                 (guild_id, guild.name))
-
-            await db.commit()
-
-    # Send guild and user numbers to db
-    async def _update_stats(self):
-        guild_count = len(self.guilds)
-        user_count = sum(len(guild.members) for guild in self.guilds)
-        async with aiosqlite.connect(f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db") as db:
-            await db.execute("UPDATE bot_stats SET guild_count = ?", (guild_count,))
-            await db.execute("UPDATE bot_stats SET user_count = ?", (user_count,))
-
-            if db.total_changes == 0:
-                await db.execute("INSERT INTO bot_stats(guild_count, user_count) VALUES (?, ?)", (guild_count, user_count))
-            
-            await db.commit()
-
 
 
 
@@ -193,12 +155,8 @@ async def on_ready():
     await init_db()
     # Load server prefixes
     await load_prefixes()
-    # send guild and user stats to database
-    bot.update_stats.start()
-    # Log current guilds
-    bot.sync_guilds_db.start()
     
-    statuses = ["with your feelings~", "roblox!!", "with angryappleseed", "League of Legends"]
+    statuses = ["with your feelings~", "Palworld!", "Tetrio :D", "League of Legends"]
     selected_status = random.choice(statuses)
     await bot.change_presence(
         status=discord.Status.online,
@@ -213,14 +171,7 @@ async def on_ready():
     if config["sync_commands_globally"]:
         bot.logger.info("Syncing commands globally...")
         await bot.tree.sync()
-    print(r"""
-    ___    __           __              
-   /   |  / /___ ____  / /_  _________ _
-  / /| | / / __ `/ _ \/ __ \/ ___/ __ `/
- / ___ |/ / /_/ /  __/ /_/ / /  / /_/ / 
-/_/  |_/_/\__, /\___/_.___/_/   \__,_/  
-         /____/                        
-    """)
+    bot.logger.info(f"#KiichuBot")
 
 
 
