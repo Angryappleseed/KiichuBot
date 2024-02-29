@@ -1,0 +1,18 @@
+Replace the instructions inside the quotes and brackets with the required info.
+If you don't care about cogs/social.py, you can just remove the values for: "tenor_api_key" and "tenor_client_key", and just delete the cog.
+If you want to work with the tenor API, you can go here https://developers.google.com/tenor/guides/quickstart
+Dont forget to remove all of these instructions and save this file as 'config.json' when finished.
+{
+  "version": "Replace with your current version number (you can choose whatever you want)",
+  "prefix": "Replace with your preferred default prefix for the bot",
+  "token": "Replace with your bot's token found in developer portal",
+  "permissions": "1532229053686",
+  "application_id": "Replace with your bot's application_id found in developer portal",
+  "owners": [Replace with your user id and any other people you want to have access to the Owner commands (VERY risky to give anyone else), separated by commas],
+  "trustedUsers": [Replace with your user id and the user id's of your trusted users (which get access to trusted.py commands), separated by commas],
+  "modRoles": [Replace with IDs of your mod roles, separated by commas],
+  "dm_channel_id": "Replace with the channel id where you want messages DM'd to the bot to be viewed from.",
+  "status_channel_id": "Replace with the channel id where you want the bot to send startup/shutdown messages in your server",
+  "bot_guild_id": "Replace with your bot's primary guild id here",
+  "sync_commands_globally": false
+}
