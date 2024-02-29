@@ -97,9 +97,7 @@ class General(commands.Cog, name="general"):
         self.bot = bot
         self.cog_descriptions = {
             'general': "Common commands for regular usage.",
-            'miscellaneous': "Just random commands.",
-            'welcome': "Custom Welcome PNGs",
-            'onboarding': "Commands for handling new members",
+            'welcome': "Custom Welcome Messages!",
             'logging': "Commands for server logging and monitoring.",
             'moderation': "Commands to help moderate your server.",
             'trusted': "Special commands for Trusted users of the bot.",
@@ -113,7 +111,7 @@ class General(commands.Cog, name="general"):
     )
     @checks.not_blacklisted()
     async def help(self, ctx):
-        included_cogs = ["general", "miscellaneous", "welcome", "onboarding", "logging", "moderation", "trusted", "owner"]
+        included_cogs = ["general", "welcome", "logging", "moderation", "trusted", "owner"]
         view = HelpView(ctx, included_cogs)
         embed = view.get_homescreen_embed()
         await ctx.send(embed=embed, view=view)
@@ -160,50 +158,22 @@ class General(commands.Cog, name="general"):
         )
         await ctx.send(embed=embed)
 
-#--------------------ABOUT------------------------#
 
+
+#--------------------------------ECHO COMMAND--------------------------------#
+        
     @commands.hybrid_command(
-        name="about",
-        description="Get to know a little about KiichuBot",
+        name="echo",
+        description="Algebra will repeat after you",
     )
-    @checks.not_blacklisted()
-    async def about(self, context: Context) -> None:
-        current_prefix = self.bot.custom_prefixes.get(str(context.guild.id), '!') 
-        with open('config.json', 'r') as config_file:
-            config = json.load(config_file)
-        version = config.get('version', 'Unknown')
-        embed = discord.Embed(
-            title="Hi hi! I'm KiichuBot! Let's get to know each other!",
-            color=colors["blue"],
+    @app_commands.describe(
+        message="The message that should be repeated by Algebra"
         )
-        embed.set_author(name="KiichuBot", icon_url=self.bot.guild.icon.url)
-        embed.add_field(name="Owner/Dev:", value="Angryappleseed <@484856870725484560>", inline=True)
-        embed.add_field(name="Current Version", value=version, inline=True)
-        embed.add_field(name="Creation Date:", value="Feb 28, 2024", inline=True)
-
-        embed.add_field(
-            name="Prefix:",
-            value=f"/ (Slash Commands) or `{current_prefix}` for normal commands",
-            inline=False,
-        )
-        await context.send(embed=embed)
- 
+    @checks.is_moderator()
+    async def echo(self, context: Context, *, message: str) -> None:
+        await context.send(message)
 
 
- #--------------------PING------------------------#
-
-    @commands.hybrid_command(
-        name="ping",
-        description="Pings KiichuBot and gets her latency",
-    )
-    @checks.not_blacklisted()
-    async def ping(self, context: Context) -> None:
-        embed = discord.Embed(
-            title=f"WHO PINGED ME?! {emotes['pout']}",
-            description=f"My current latency is {round(self.bot.latency * 1000)}ms.",
-            color=colors["blue"],
-        )
-        await context.send(embed=embed)
 
 
 

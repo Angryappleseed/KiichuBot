@@ -92,8 +92,8 @@ class Onboarding(commands.Cog, name="onboarding"):
 
 #---------------------------ONBOARDING HELP-------------------------#
     @commands.hybrid_command(
-        name="onboardinghelp",
-        description="Displays tips for setting up Onboarding",
+        name="autorolehelp",
+        description="Displays tips for setting up Autoroles",
     )
     @checks.not_blacklisted()
     @commands.has_permissions(manage_guild=True)
@@ -101,20 +101,6 @@ class Onboarding(commands.Cog, name="onboarding"):
         embed = discord.Embed(
             title="Onboarding Help", color=colors["blue"]
             )
-        embed.add_field(name="Welcome/Goodbye:", value=(
-            "To set up the welcome/goodbye messages, first use the command `setwelcomechannel` followed by the channel you want the messages sent to.\n"
-            "Next, you can use the command `setwelcome` or `setgoodbye` followed by your desired messages.\n"
-            "You can include placeholders in the message to personalize it:\n"
-            "- `{member}` will be replaced with the username of new members.\n"
-            "- `{member.mention}` will ping the user instead.\n"
-            "- `<#channel_id>` will mention a specified channel in the text.\n"
-            "- `|n|` will create a newline, and create a paragraph break.\n"
-            "**For example:**\n"
-            "/setwelcome Welcome, `{member.mention}`! Head over to `<#1128964651909132317>` to get started!`\n"
-            "You can also use the togglewelcome/togglegoodbye commands to disable/enable the messages."
-        ),
-        inline=False
-    )
         embed.add_field(name="Autoroles:", value="""To set up auto-roles for new members, use the command `addautorole` followed by pinging the role you want to assign.
                         For example:
                         `/addautorole @Role` 
@@ -122,166 +108,6 @@ class Onboarding(commands.Cog, name="onboarding"):
                         To list all auto-roles, use the command `listautoroles`.""", inline=False)
         await ctx.send(embed=embed)
 
-
-
-#----------------------SET WELCOME--------------------------#
-    @commands.hybrid_command(
-        name="setwelcome",
-        description="Sets server's welcome message."
-    )
-    @checks.not_blacklisted()
-    @commands.has_permissions(manage_guild=True)
-    @app_commands.describe(
-        welcome_message="The message you want the bot to say."
-    )
-    async def set_welcome_message(self, ctx: commands.Context, *, welcome_message: str):
-        welcome_message = welcome_message.replace("|n|", "\n")
-        async with aiosqlite.connect("database/database.db") as db:
-            cursor = await db.execute(
-                "SELECT guild_id FROM onboarding WHERE guild_id = ?",
-                (str(ctx.guild.id),),
-            )
-            row = await cursor.fetchone()
-            if row:
-                await db.execute(
-                    "UPDATE onboarding SET welcome_message = ? WHERE guild_id = ?",
-                    (welcome_message, str(ctx.guild.id)),
-                )
-            else:
-                await db.execute(
-                    "INSERT INTO onboarding (guild_id, welcome_message) VALUES (?, ?)",
-                    (str(ctx.guild.id), welcome_message),
-                )
-            await db.commit()
-        embed = discord.Embed(
-            title="Welcome message set successfully!", color=colors["blue"]
-        )
-        await ctx.send(embed=embed)
-
-
-
-#----------------------SET GOODBYE--------------------------#
-    @commands.hybrid_command(
-        name="setgoodbye", 
-        description="Sets server's goodbye message."
-    )
-    @checks.not_blacklisted()
-    @commands.has_permissions(manage_guild=True)
-    @app_commands.describe(
-        goodbye_message="The message you want the bot to say."
-    )
-    async def set_goodbye_message(self, ctx: commands.Context, *, goodbye_message: str):
-        goodbye_message = goodbye_message.replace("|n|", "\n")
-        async with aiosqlite.connect("database/database.db") as db:
-            cursor = await db.execute(
-                "SELECT guild_id FROM onboarding WHERE guild_id = ?",
-                (str(ctx.guild.id),),
-            )
-            row = await cursor.fetchone()
-            if row:
-                await db.execute(
-                    "UPDATE onboarding SET goodbye_message = ? WHERE guild_id = ?",
-                    (goodbye_message, str(ctx.guild.id)),
-                )
-            else:
-                await db.execute(
-                    "INSERT INTO onboarding (guild_id, goodbye_message) VALUES (?, ?)",
-                    (str(ctx.guild.id), goodbye_message),
-                )
-            await db.commit()
-        embed = discord.Embed(
-            title="Goodbye message set successfully!", color=colors["blue"]
-        )
-        await ctx.send(embed=embed)
-
-    
-
-
-#----------------------SET WELCOME CHANNEL--------------------------#
-    @commands.hybrid_command(
-        name="setwelcomechannel",
-        description="Sets server's welcome channel."
-    )
-    @checks.not_blacklisted()
-    @commands.has_permissions(manage_guild=True)
-    @app_commands.describe(
-        channel="The channel where you want welcome/goodbye messages."
-    )
-    async def set_welcome_channel(self, ctx: commands.Context, channel: discord.TextChannel):
-        async with aiosqlite.connect("database/database.db") as db:
-            cursor = await db.execute(
-                "SELECT guild_id FROM onboarding WHERE guild_id = ?",
-                (str(ctx.guild.id),),
-            )
-            row = await cursor.fetchone()
-            if row:
-                await db.execute(
-                    "UPDATE onboarding SET welcome_channel_id = ? WHERE guild_id = ?",
-                    (str(channel.id), str(ctx.guild.id)),
-                )
-            else:
-                await db.execute(
-                    "INSERT INTO onboarding (guild_id, welcome_channel_id) VALUES (?, ?)",
-                    (str(ctx.guild.id), str(channel.id)),
-                )
-            await db.commit()
-        embed = discord.Embed(
-            title=f"Welcome channel set to {channel.mention}!", color=colors["blue"]
-        )
-        await ctx.send(embed=embed)
-
-    
-#----------------------TOGGLE WELCOME MESSAGE--------------------------#
-    @commands.hybrid_command(
-        name="togglewelcome",
-        description="Toggles welcome messages on or off."
-    )
-    @checks.not_blacklisted()
-    @commands.has_permissions(manage_guild=True)
-    async def toggle_welcome_message(self, ctx: commands.Context):
-        async with aiosqlite.connect("database/database.db") as db:
-            cursor = await db.execute(
-                "SELECT welcome_enabled FROM onboarding WHERE guild_id = ?",
-                (str(ctx.guild.id),),
-            )
-            row = await cursor.fetchone()
-            new_status = not row[0] if row else True
-            await db.execute(
-                "UPDATE onboarding SET welcome_enabled = ? WHERE guild_id = ?",
-                (new_status, str(ctx.guild.id)),
-            )
-            await db.commit()
-        status = "enabled" if new_status else "disabled"
-        embed = discord.Embed(
-            title=f"Welcome message has been {status}.", color=colors["blue"]
-        )
-        await ctx.send(embed=embed)
-
-#----------------------TOGGLE GOODBYE MESSAGE--------------------------#
-    @commands.hybrid_command(
-        name="togglegoodbye",
-        description="Toggles goodbye messages on or off."
-    )
-    @checks.not_blacklisted()
-    @commands.has_permissions(manage_guild=True)
-    async def toggle_goodbye_message(self, ctx: commands.Context):
-        async with aiosqlite.connect("database/database.db") as db:
-            cursor = await db.execute(
-                "SELECT goodbye_enabled FROM onboarding WHERE guild_id = ?",
-                (str(ctx.guild.id),),
-            )
-            row = await cursor.fetchone()
-            new_status = not row[0] if row else True
-            await db.execute(
-                "UPDATE onboarding SET goodbye_enabled = ? WHERE guild_id = ?",
-                (new_status, str(ctx.guild.id)),
-            )
-            await db.commit()
-        status = "enabled" if new_status else "disabled"
-        embed = discord.Embed(
-            title=f"Goodbye message has been {status}.", color=colors["blue"]
-        )
-        await ctx.send(embed=embed)
 
 
 #----------------------ADD AUTOROLES--------------------------#

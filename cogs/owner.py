@@ -292,6 +292,7 @@ class Owner(commands.Cog, name="owner"):
 
 
 #--------------------------SET STATUS---------------------------------#
+        
     @commands.hybrid_command(name="setstatus", description="Changes Algebra's status.")
     @checks.is_owner()
     @app_commands.describe(

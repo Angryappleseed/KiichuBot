@@ -59,41 +59,6 @@ class Trusted(commands.Cog, name="trusted"):
 
 
 
-#----------------------DM LISTENER-----------------------------#
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message) -> None:
-        if message.author == self.bot.user or message.author.bot:
-            return
-
-        # If message was sent to bot's DMs, send it to Algebra's Server
-        if isinstance(message.channel, discord.DMChannel):
-            dm_channel_id = int(self.config["dm_channel_id"])
-            channel = self.bot.get_channel(dm_channel_id)
-            if channel is not None:
-                embed = discord.Embed(description=f"{message.author.name}: {message.content}", color=colors["blue"])
-                media_urls = []
-                if message.attachments:
-                    for attachment in message.attachments:
-                        media_urls.append(attachment.url)
-
-                await channel.send(embed=embed)
-                for url in media_urls:
-                    await channel.send(url)
-
-
-
-#--------------------------------ECHO COMMAND--------------------------------#
-    @commands.hybrid_command(
-        name="echo",
-        description="Algebra will repeat after you",
-    )
-    @app_commands.describe(
-        message="The message that should be repeated by Algebra"
-        )
-    @checks.is_trusted()
-    async def echo(self, context: Context, *, message: str) -> None:
-        await context.send(message)
-
 
 #------------------------------SEND EMBED COMMAND--------------------------------#
     @commands.hybrid_command(

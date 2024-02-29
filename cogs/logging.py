@@ -225,10 +225,10 @@ class Logging(commands.Cog, name="logging"):
                 return
 
         try:
-            with open('images/algebrapfp.png', 'rb') as avatar_file:
+            with open('images/KiichuBotPFP.png', 'rb') as avatar_file:
                 avatar_bytes = avatar_file.read()
 
-            webhook = await channel.create_webhook(name="Algebra Logging", avatar=avatar_bytes)
+            webhook = await channel.create_webhook(name="KiichuBot Logging", avatar=avatar_bytes)
             self.log_channel[context.guild.id] = webhook.url
             await add_msglog_webhook(context.guild.id, webhook.url)
             embed = discord.Embed(

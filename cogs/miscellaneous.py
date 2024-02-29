@@ -5,6 +5,7 @@ import re
 import random
 from discord.ext import commands
 from discord.ext.commands import Context
+from discord import app_commands
 
 from helpers import checks
 from helpers.colors import colors
@@ -13,6 +14,7 @@ from helpers.emotes import emotes
 class Miscellaneous(commands.Cog, name="miscellaneous"):
     def __init__(self, bot):
         self.bot = bot
+
 
 
 #-----------------------YORU MOT LISTENER---------------------------#
@@ -41,6 +43,22 @@ class Miscellaneous(commands.Cog, name="miscellaneous"):
             ]
             response = random.choice(response_options)
             await message.channel.send(response)
+
+
+
+#--------------------------------ECHO COMMAND--------------------------------#
+    @commands.hybrid_command(
+        name="echo",
+        description="KiichuBot will send your message",
+    )
+    @app_commands.describe(
+        message="The message that should be repeated by KiichuBot"
+        )
+    @checks.not_blacklisted()
+    @checks.is_moderator()
+    async def echo(self, context: Context, *, message: str) -> None:
+        await context.send(message)
+
 
 
 
