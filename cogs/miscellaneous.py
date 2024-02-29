@@ -14,44 +14,6 @@ class Miscellaneous(commands.Cog, name="miscellaneous"):
     def __init__(self, bot):
         self.bot = bot
 
-#---------------------------JANE------------------------------#
-    @commands.hybrid_command(
-        name="jane",
-        description="OMG THE MENTALIST",
-    )
-    @checks.not_blacklisted()
-    async def jane(self, context: Context):
-        text_responses = [
-            "https://tenor.com/view/the-mentalist-simon-baker-patrick-jane-gif-3538979",
-            "https://tenor.com/view/patrick-jane-the-mentalist-smile-point-you-gif-16385894",
-            "https://tenor.com/view/the-mentalist-patrick-jane-smile-happy-look-gif-16385853",
-            "https://tenor.com/view/patrick-jane-the-mentalist-redjohn-behzatc-gif-12434872",
-            "https://tenor.com/view/mentalist-patrick-jane-dramatic-gif-18947431",
-            "https://tenor.com/view/simon-baker-patrick-jane-maybe-gif-20978632",
-            "https://tenor.com/view/the-mentalist-patrick-jane-smiling-grin-gif-16385771",
-            "https://tenor.com/view/tea-addicted-meantalist-patrick-jane-gif-5580036",
-            "https://tenor.com/view/the-mentalist-patrick-jane-smile-happy-gif-16385800",
-            "https://tenor.com/view/the-mentalist-patrick-jane-smile-little-small-gif-16385785",
-            "https://tenor.com/view/icecream-patrick-jane-mentalist-funny-gif-5586338"
-        ]
-        response = random.choice(text_responses)
-        await context.send(response)
-
-
-
-#--------------------------KFC SPIN--------------------------------#
-    @commands.hybrid_command(
-        name="kfc",
-        description="Chimken Spin!!",
-    )
-    @checks.not_blacklisted()
-    async def kfc(self, context: Context):
-        response= "https://media.discordapp.net/attachments/751366936557912066/1035409364552515644/kfcspin.gif"
-        await context.send(response)
-
-
-
-
 
 #-----------------------YORU MOT LISTENER---------------------------#
     @commands.Cog.listener()

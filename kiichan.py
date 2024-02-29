@@ -1,11 +1,8 @@
 
-# Algebra Bot v1.1.0
+# KiichuBot v1.0.0
 # DEV: Angryappleseed (angryappleseed on discord)
-# Last Updated: Januray 5, 2024
-# Invite Algebra to your own server:
-# https://discordapp.com/oauth2/authorize?&client_id=1073891402108370974&scope=bot+applications.commands&permissions=1532229053686
-# Join the Official Algebra Discord Server:
-# https://discord.gg/uxj2KBVrep
+# Last Updated: Feb 28, 2024
+# Invite KiichuBot to your own server:
 
 import aiosqlite
 import asyncio
@@ -49,8 +46,8 @@ else:
 default_prefix = config["prefix"]
 async def get_custom_prefix(bot, message):
     bot_mention = f'<@{bot.user.id}> '
-    algebra_prefix = "Algebra "
-    prefixes = [algebra_prefix, bot.default_prefix, bot_mention]
+    kiichu_prefix = "KiichuBot "
+    prefixes = [kiichu_prefix, bot.default_prefix, bot_mention]
 
     if message.guild is not None:
         server_id = str(message.guild.id)
@@ -61,9 +58,9 @@ async def get_custom_prefix(bot, message):
     return tuple(prefixes)
 
 
-#----------------------------ALGEBRA BOT-----------------------------#
+#----------------------------KiichuBot BOT-----------------------------#
 
-class AlgebraBot(commands.Bot):
+class KiichuBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.log_channel = {} 
@@ -108,7 +105,7 @@ class AlgebraBot(commands.Bot):
 
 
 
-bot = AlgebraBot(command_prefix=get_custom_prefix, 
+bot = KiichuBot(command_prefix=get_custom_prefix, 
                  intents=intents, 
                  help_command=None)
 
@@ -150,7 +147,7 @@ class LoggingFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-logger = logging.getLogger("Algebra")
+logger = logging.getLogger("KiichuBot")
 logger.setLevel(logging.INFO)
 
 console_handler = logging.StreamHandler()
@@ -234,11 +231,11 @@ async def on_ready():
     status_channel = bot.get_channel(status_channel_id)
     if status_channel:
         startup_embed = discord.Embed(title=f"Hey hey! I am up and ready to go! {emotes['wave']}", 
-                                      description=f"Algebra is now online. {emotes['comfy']}", 
+                                      description=f"KiichuBot is now online. {emotes['comfy']}", 
                                       color=colors["green"], 
                                       timestamp=datetime.now()
                                       )
-        startup_embed.set_author(name="Algebra", icon_url=bot.guild.icon.url)
+        startup_embed.set_author(name="KiichuBot", icon_url=bot.guild.icon.url)
         await status_channel.send(embed=startup_embed)
     else:
         bot.logger.warning("Status channel not found. Unable to send startup and shutdown embeds.")
@@ -263,11 +260,11 @@ async def on_guild_join(guild: discord.Guild) -> None:
     welcome_channel = guild.system_channel
     if welcome_channel is not None:
         default_prefix = bot.default_prefix
-        welcome_message = f"""I'm Algebra, a multipurpose bot here to assist you.
+        welcome_message = f"""I'm KiichuBot, a multipurpose bot here to assist you.
         Feel free to use my commands to enhance your server experience. 
         My default prefix is set to `{default_prefix}`, but you can change this with the `{default_prefix}setprefix` command.
         You can use `{default_prefix}help` to get started. Have fun! {emotes['comfy']}"""
-        embed = discord.Embed(title=f"Hi hi! It's Algebra {emotes['wave']}", 
+        embed = discord.Embed(title=f"Hi hi! It's KiichuBot {emotes['wave']}", 
                               description=welcome_message, 
                               color=colors["blue"]
                               )
@@ -345,7 +342,7 @@ async def on_command_error(context: Context, error) -> None:
     #-------------------USER IS NOT AN OWNER------------------------#
     elif isinstance(error, exceptions.UserNotOwner):
         embed = discord.Embed(
-            description=f"You are not the owner of Algebra! {emotes['ded']}", color=colors["red"]
+            description=f"You are not the owner of KiichuBot! {emotes['ded']}", color=colors["red"]
         )
         await context.send(embed=embed)
         if context.guild:
@@ -361,7 +358,7 @@ async def on_command_error(context: Context, error) -> None:
     #-------------------USER IS NOT TRUSTED------------------------#
     elif isinstance(error, exceptions.UserNotTrusted):
         embed = discord.Embed(
-            description=f"You are not a Trusted User of Algebra! {emotes['ded']}", color=colors["red"]
+            description=f"You are not a Trusted User of KiichuBot! {emotes['ded']}", color=colors["red"]
         )
         await context.send(embed=embed)
         if context.guild:
