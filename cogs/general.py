@@ -11,6 +11,8 @@ from discord.ext import menus
 from discord.ext.commands import Context
 from discord.ext.commands.core import has_guild_permissions, has_permissions
 
+from typing import Optional
+
 from helpers import checks
 from helpers.database import set_guild_prefix
 
@@ -108,6 +110,7 @@ class General(commands.Cog, name="general"):
         description="Lists all the commands KiichuBot has loaded"
     )
     @checks.not_blacklisted()
+    @checks.is_moderator()
     async def help(self, ctx):
         included_cogs = ["general", "logging", "moderation", "owner"]
         view = HelpView(ctx, included_cogs)
@@ -147,6 +150,7 @@ class General(commands.Cog, name="general"):
     )
     @commands.guild_only()
     @checks.not_blacklisted()
+    @checks.is_moderator()
     async def currentprefix(self, ctx: commands.Context):
         server_id = str(ctx.guild.id)
         current_prefix = self.bot.custom_prefixes.get(server_id, self.bot.default_prefix)
@@ -162,14 +166,21 @@ class General(commands.Cog, name="general"):
         
     @commands.hybrid_command(
         name="echo",
-        description="Algebra will repeat after you",
+        description="KiichuBot will repeat after you.",
     )
-    @app_commands.describe(
-        message="The message that should be repeated by Algebra"
-        )
+    @checks.not_blacklisted()
     @checks.is_moderator()
-    async def echo(self, context: Context, *, message: str) -> None:
-        await context.send(message)
+    async def echo(self, context: commands.Context, channel: Optional[discord.TextChannel], *, message: str) -> None:
+        if channel:
+            await channel.send(message)
+            embed = discord.Embed(
+                description=f"Message sent to {channel.mention}.",
+                color=colors["blue"]
+            )
+            await context.send(embed=embed)
+
+        else:
+            await context.send(message)
 
 
 
