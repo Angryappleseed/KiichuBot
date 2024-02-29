@@ -40,20 +40,18 @@ class Welcome(commands.Cog):
 
                 draw = ImageDraw.Draw(template)
                 try:
-                    font = ImageFont.truetype("arial.ttf", 48)  # Increased font size
+                    font = ImageFont.truetype("arial.ttf", 48)
                 except IOError:
                     font = ImageFont.load_default()
 
                 #text = f"Welcome to the server, {member.name}!"
                 text = f"{member.name}"
-                # Use textbbox() to calculate the bounding box for the text
                 left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
                 text_width = right - left
                 text_height = bottom - top
                 #text_position = ((template_width - text_width) // 2, avatar_position[1] - text_height - 50)
                 text_position = (1000, 420)
 
-                # Draw text in dark grey
                 draw.text(text_position, text, fill=(142, 38, 32), font=font)
 
                 template.paste(bordered_avatar, avatar_position, bordered_avatar)

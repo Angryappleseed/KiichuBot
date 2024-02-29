@@ -76,14 +76,13 @@ class HelpView(discord.ui.View):
     def get_homescreen_embed(self):
         current_prefix = self.bot.custom_prefixes.get(str(self.ctx.guild.id), '!')
         embed = discord.Embed(
-            title = "Algebra's Help Menu!",
+            title = "KiichuBot's Help Menu!",
             description = "It is HIGHLY recommened to enable developer mode when setting up this bot.",
             color=colors["blue"],   
         )
         embed.add_field(name=f"Current Prefix: `{current_prefix}` | Supports Slash Commands", value="This prefix can be changed with the `setprefix` command.", inline=False)
-        embed.add_field(name="About me:", value="""I'm Algebra, A multipurpose Discord Bot, made by Angryappleseed (<@484856870725484560>). 
-                        Please use the dropdown below for help with specific commands.
-                        If you need more help, you can join the [AlgebraBot Server](https://discord.gg/uxj2KBVrep)""", inline=False)
+        embed.add_field(name="About me:", value="""I'm KiichuBot, A multipurpose Discord Bot, made by Angryappleseed (<@484856870725484560>). 
+                        Please use the dropdown below for help with specific commands.)""", inline=False)
         return embed
 
 
@@ -110,7 +109,7 @@ class General(commands.Cog, name="general"):
 
     @commands.hybrid_command(
         name="help", 
-        description="Lists all the commands Algebra has loaded"
+        description="Lists all the commands KiichuBot has loaded"
     )
     @checks.not_blacklisted()
     async def help(self, ctx):
@@ -165,7 +164,7 @@ class General(commands.Cog, name="general"):
 
     @commands.hybrid_command(
         name="about",
-        description="Get to know a little about Algebra",
+        description="Get to know a little about KiichuBot",
     )
     @checks.not_blacklisted()
     async def about(self, context: Context) -> None:
@@ -174,15 +173,13 @@ class General(commands.Cog, name="general"):
             config = json.load(config_file)
         version = config.get('version', 'Unknown')
         embed = discord.Embed(
-            title="Hi hi! I'm Algebra! Let's get to know each other! <:AlgebraWave:1129023384970346516>",
+            title="Hi hi! I'm KiichuBot! Let's get to know each other!",
             color=colors["blue"],
         )
-        embed.set_author(name="Algebra", icon_url=self.bot.guild.icon.url)
+        embed.set_author(name="KiichuBot", icon_url=self.bot.guild.icon.url)
         embed.add_field(name="Owner/Dev:", value="Angryappleseed <@484856870725484560>", inline=True)
-        embed.add_field(name="Profile Artist:", value="Marcine <@308615343163703299>", inline=True)
         embed.add_field(name="Current Version", value=version, inline=True)
-        embed.add_field(name="Built on:", value=f"Python {platform.python_version()} with discord.py", inline=True)
-        embed.add_field(name="Creation Date:", value="Feb 11, 2023", inline=True)
+        embed.add_field(name="Creation Date:", value="Feb 28, 2024", inline=True)
 
         embed.add_field(
             name="Prefix:",
@@ -197,7 +194,7 @@ class General(commands.Cog, name="general"):
 
     @commands.hybrid_command(
         name="ping",
-        description="Pings Algebra and gets her latency",
+        description="Pings KiichuBot and gets her latency",
     )
     @checks.not_blacklisted()
     async def ping(self, context: Context) -> None:
@@ -207,43 +204,6 @@ class General(commands.Cog, name="general"):
             color=colors["blue"],
         )
         await context.send(embed=embed)
-
-
-#--------------------INVITE------------------------#
-    @commands.hybrid_command(
-        name="invite",
-        description="Get Algebra's link to add her to your server",
-    )
-    @checks.not_blacklisted()
-    async def invite(self, context: Context) -> None:
-        embed = discord.Embed(
-            description=f"You can invite me to your server by clicking [here](https://discordapp.com/oauth2/authorize?&client_id={self.bot.config['application_id']}&scope=bot+applications.commands&permissions={self.bot.config['permissions']}). {emotes['peek']}",
-            color=colors["blue"],
-        )
-        try:
-            await context.author.send(embed=embed)
-            await context.send(f"Check your DMs for the invite link {emotes['peek']}")
-        except discord.Forbidden:
-            await context.send(embed=embed)
-
-
-#--------------------SERVER-----------------------#
-
-    @commands.hybrid_command(
-        name="server",
-        description="Get an invite to Algebra's Official Server",
-    )
-    @checks.not_blacklisted()
-    async def server(self, context: Context) -> None:
-        embed = discord.Embed(
-            description=f"Join Algebra's official server by clicking [here](https://discord.gg/uxj2KBVrep). <:AlgebraPeek:1129024648202440806>",
-            color=colors["blue"],
-        )
-        try:
-            await context.author.send(embed=embed)
-            await context.send(f"Check your DMs for the invite link {emotes['peek']}")
-        except discord.Forbidden:
-            await context.send(embed=embed)
 
 
 

@@ -34,9 +34,10 @@ class Moderation(commands.Cog, name="moderation"):
         name="kick",
         description="Kick a user out of the server.",
     )
+    @checks.not_blacklisted()
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_permissions(kick_members=True)
-    @checks.not_blacklisted()
+    @checks.is_moderator()
     @app_commands.describe(
         user="The user that should be kicked.",
         reason="The reason why the user should be kicked.",
@@ -88,9 +89,10 @@ class Moderation(commands.Cog, name="moderation"):
         name="ban",
         description="Bans a user from the server.",
     )
+    @checks.not_blacklisted()
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
-    @checks.not_blacklisted()
+    @checks.is_moderator()
     @app_commands.describe(
         user="The user that should be banned.",
         reason="The reason why the user should be banned.",
@@ -140,9 +142,10 @@ class Moderation(commands.Cog, name="moderation"):
         name="idban",
         description="Bans a user using their userID.",
     )
+    @checks.not_blacklisted()
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
-    @checks.not_blacklisted()
+    @checks.is_moderator()
     @app_commands.describe(
         user_id="The user ID that should be banned.",
         reason="The reason why the user should be banned.",
@@ -181,8 +184,10 @@ class Moderation(commands.Cog, name="moderation"):
         name="unban",
         description="Unbans a user from the server.",
     )
+    @checks.not_blacklisted()
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
+    @checks.is_moderator()
     @app_commands.describe(
         user_id="The ID of the user that should be unbanned.",
         reason="The reason why the user should be unbanned.",
@@ -255,6 +260,7 @@ class Moderation(commands.Cog, name="moderation"):
         description="Adds a warning to a member.",
     )
     @checks.not_blacklisted()
+    @checks.is_moderator()
     @commands.has_permissions(manage_messages=True)
     @app_commands.describe(
         user="The user that should be warned.",
@@ -296,6 +302,7 @@ class Moderation(commands.Cog, name="moderation"):
         description="Removes warning from a member.",
     )
     @checks.not_blacklisted()
+    @checks.is_moderator()
     @commands.has_permissions(manage_messages=True)
     @app_commands.describe(
         user="The user that should get their warning removed.",
@@ -324,8 +331,10 @@ class Moderation(commands.Cog, name="moderation"):
         name="listwarns",
         description="Shows the warnings of a member.",
     )
-    @commands.has_guild_permissions(manage_messages = True)
     @checks.not_blacklisted()
+    @commands.has_guild_permissions(manage_messages = True)
+    @checks.is_moderator()
+    
     @app_commands.describe(user="The user you want to get the warnings of.")
     async def listwarns(self, context: Context, user: discord.User):
         warnings_list = await database.get_warnings(user.id, context.guild.id)
@@ -353,9 +362,10 @@ class Moderation(commands.Cog, name="moderation"):
         name="purge",
         description="Delete a number of messages.",
     )
+    @checks.not_blacklisted()
     @commands.has_guild_permissions(manage_messages = True)
     @commands.bot_has_permissions(manage_messages = True)
-    @checks.not_blacklisted()
+    @checks.is_moderator()
     @app_commands.describe(amount="The amount of messages that should be deleted.")
     async def purge(self, context: Context, amount: int) -> None:
         await context.send("Deleting messages...")
@@ -378,9 +388,10 @@ class Moderation(commands.Cog, name="moderation"):
         name="nick",
         description="Change the nickname of a member",
     )
+    @checks.not_blacklisted()
     @commands.has_permissions(manage_nicknames = True)
     @commands.bot_has_permissions(manage_nicknames = True)
-    @checks.not_blacklisted()
+    @checks.is_moderator()
     @app_commands.describe(
         user="The user that should have a new nickname.",
         nickname="The new nickname that should be set.",

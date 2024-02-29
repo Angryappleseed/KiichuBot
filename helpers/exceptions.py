@@ -20,3 +20,7 @@ class UserNotTrusted(commands.CheckFailure):
         self.message = message
         super().__init__(self.message)
 
+class UserNotModerator(commands.CheckFailure):
+    def __init__(self, message=f"You do not have permission to use this command! {emotes['ded']}"):
+        self.message = message
+        super().__init__(self.message)
