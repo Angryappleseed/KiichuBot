@@ -22,9 +22,6 @@ async def set_guild_prefix(server_id: str, prefix: str):
 
 
 
-
-
-
 #-----------------------LOGGING--------------------------#
 
 
@@ -200,53 +197,6 @@ async def get_warnings(user_id: int, server_id: int) -> list:
 
 
 
-#---------------------------ONBOARDING------------------------------#
-
-
-async def get_welcome_message(guild):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        cursor = await db.execute(
-            "SELECT welcome_message FROM onboarding WHERE guild_id = ?",
-            (str(guild.id),),
-        )
-        row = await cursor.fetchone()
-        if row:
-            return row[0]
-        else:
-            return None
-
-
-
-async def get_goodbye_message(guild):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        cursor = await db.execute(
-            "SELECT goodbye_message FROM onboarding WHERE guild_id = ?",
-            (str(guild.id),),
-        )
-        row = await cursor.fetchone()
-        if row:
-            return row[0]
-        else:
-            return None
-        
-
-async def get_welcome_channel(guild):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        cursor = await db.execute(
-            "SELECT welcome_channel_id FROM onboarding WHERE guild_id = ?",
-            (str(guild.id),),
-        )
-        row = await cursor.fetchone()
-        if row:
-            channel_id = row[0]
-            welcome_channel = guild.get_channel(int(channel_id))
-            return welcome_channel
-        else:
-            return None
-        
-
-
-
 #-----------------------AUTO ROLES-----------------------------#
 async def add_auto_role(guild_id: str, role_id: str):
     async with aiosqlite.connect(DATABASE_PATH) as db:
@@ -315,8 +265,6 @@ async def get_auto_roles(guild_id: str) -> list:
 
 
 
-
-
 #----------------------STICKY ROLES---------------------------#
 async def set_sticky_roles(user_id: str, guild_id: str, role_ids: str):
     async with aiosqlite.connect(DATABASE_PATH) as db:
@@ -336,38 +284,3 @@ async def get_sticky_roles(user_id: str, guild_id: str) -> list:
         row = await cursor.fetchone()
         return row[0].split(",") if row else []
     
-
-
-
-
-#--------------------SOCIAL INTERACTIONS-------------------------#
-
-async def increment_interaction_count(user_id: int, target_user_id: int, interaction_type: str) -> int:
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute(
-            "INSERT OR IGNORE INTO interaction_counts (user_id, interaction_type, count) VALUES (?, ?, 0)",
-            (target_user_id, interaction_type),
-        )
-        await db.execute(
-            "UPDATE interaction_counts SET count = count + 1 WHERE user_id = ? AND interaction_type = ?",
-            (target_user_id, interaction_type),
-        )
-        await db.commit()
-        rows = await db.execute(
-            "SELECT count FROM interaction_counts WHERE user_id = ? AND interaction_type = ?",
-            (target_user_id, interaction_type),
-        )
-        async with rows as cursor:
-            result = await cursor.fetchone()
-            return result[0] if result is not None else 0
-
-
-async def get_interaction_count(user_id: int, interaction_type: str) -> int:
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        rows = await db.execute(
-            "SELECT count FROM interaction_counts WHERE user_id = ? AND interaction_type = ?",
-            (user_id, interaction_type),
-        )
-        async with rows as cursor:
-            result = await cursor.fetchone()
-            return result[0] if result is not None else 0
