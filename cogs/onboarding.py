@@ -8,9 +8,6 @@ from discord.ext.commands import Context
 from discord import app_commands
 
 from helpers.database import( 
-    get_welcome_message,
-    get_goodbye_message,
-    get_welcome_channel,
     add_auto_role,
     remove_auto_role,
     get_auto_roles,
@@ -34,7 +31,7 @@ class Onboarding(commands.Cog, name="onboarding"):
         self.bot = bot
 
 
-#--------------------- AUTO-ASSIGN ROLES + MESSAGES------------------------------#
+#---------------------AUTO-ASSIGN ROLES-----------------------------#
     @commands.Cog.listener()
     async def on_member_join(self, member):
         await assign_auto_roles(member)
@@ -42,19 +39,10 @@ class Onboarding(commands.Cog, name="onboarding"):
         member_id = str(member.id)
         async with aiosqlite.connect("database/database.db") as db:
             cursor = await db.execute(
-                "SELECT welcome_enabled, welcome_message, welcome_channel_id, sticky_roles_enabled FROM onboarding WHERE guild_id = ?",
+                "SELECT sticky_roles_enabled FROM onboarding WHERE guild_id = ?",
                 (guild_id,),
             )
             row = await cursor.fetchone()
-            if row and row[0]:
-                welcome_message = row[1]
-                if welcome_message:
-                    welcome_channel_id = row[2]
-                    welcome_channel = member.guild.get_channel(int(welcome_channel_id))
-                    if welcome_channel:
-                        formatted_message = welcome_message.format(member=member)
-                        await welcome_channel.send(formatted_message)
-            
             if row and row[3]:
                 sticky_roles = await get_sticky_roles(member_id, guild_id)
                 if sticky_roles:
@@ -68,7 +56,7 @@ class Onboarding(commands.Cog, name="onboarding"):
         member_id = str(member.id)
         async with aiosqlite.connect("database/database.db") as db:
             cursor = await db.execute(
-                "SELECT goodbye_enabled, goodbye_message, welcome_channel_id, sticky_roles_enabled FROM onboarding WHERE guild_id = ?",
+                "SELECT sticky_roles_enabled FROM onboarding WHERE guild_id = ?",
                 (guild_id,),
             )
             row = await cursor.fetchone()
@@ -77,36 +65,7 @@ class Onboarding(commands.Cog, name="onboarding"):
                     role_ids = ",".join([str(role.id) for role in member.roles if not role.is_default()])
                     await set_sticky_roles(member_id, guild_id, role_ids)
 
-                if row[0]:
-                    goodbye_message = row[1]
-                    if goodbye_message:
-                        welcome_channel_id = row[2]
-                        welcome_channel = member.guild.get_channel(int(welcome_channel_id))
-                        if welcome_channel:
-                            formatted_message = goodbye_message.format(member=member)
-                            await welcome_channel.send(formatted_message)
 
-
-
-
-
-#---------------------------ONBOARDING HELP-------------------------#
-    @commands.hybrid_command(
-        name="autorolehelp",
-        description="Displays tips for setting up Autoroles",
-    )
-    @checks.not_blacklisted()
-    @commands.has_permissions(manage_guild=True)
-    async def onboarding_help(self, ctx: commands.Context):
-        embed = discord.Embed(
-            title="Onboarding Help", color=colors["blue"]
-            )
-        embed.add_field(name="Autoroles:", value="""To set up auto-roles for new members, use the command `addautorole` followed by pinging the role you want to assign.
-                        For example:
-                        `/addautorole @Role` 
-                        To remove an auto-role, use the command `removeautorole` instead. 
-                        To list all auto-roles, use the command `listautoroles`.""", inline=False)
-        await ctx.send(embed=embed)
 
 
 
