@@ -1,7 +1,7 @@
 # KiichuBot
 ## Current Version: 1.0.0
 ## Developed by: Angryappleseed
-This is a spinoff of my Algebra Bot, built specifically and custom for Kiichan's server
+This is a spinoff of my Algebra Bot, tweaked for Kiichan's server
 
 Since this is a WIP and just a passion project, many features are incomplete/many bugs may arise and I may be slow to/never fix them.
 
