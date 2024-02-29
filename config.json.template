@@ -1,6 +1,4 @@
 Replace the instructions inside the quotes and brackets with the required info.
-If you don't care about cogs/social.py, you can just remove the values for: "tenor_api_key" and "tenor_client_key", and just delete the cog.
-If you want to work with the tenor API, you can go here https://developers.google.com/tenor/guides/quickstart
 Dont forget to remove all of these instructions and save this file as 'config.json' when finished.
 {
   "version": "Replace with your current version number (you can choose whatever you want)",
