@@ -50,12 +50,12 @@ def is_trusted() -> Callable[[T], T]:
 
 def is_moderator() -> Callable[[T], T]:
     async def predicate(context: commands.Context) -> bool:
-        with open(
-            f"{os.path.realpath(os.path.dirname(__file__))}/../config.json"
-        ) as file:
+        with open(f"{os.path.realpath(os.path.dirname(__file__))}/../config.json") as file:
             data = json.load(file)
-        if context.author.id not in data["modRoles"]:
-            raise UserNotTrusted
+        mod_roles = data.get("modRoles", [])
+        if not any(role.id in mod_roles for role in context.author.roles):
+            raise UserNotModerator
+        
         return True
 
     return commands.check(predicate)
