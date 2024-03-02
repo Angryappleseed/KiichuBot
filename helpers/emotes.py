@@ -3,19 +3,19 @@
 # {emotes['cry']}
 # {emotes['ded']}
 # {emotes['think']}
-# {emotes['pout']}
+# {emotes['pien']}
 # {emotes['peek']}
 # {emotes['comfy']}
 # {emotes['ayaya']}
 # {emotes['yorumot']}
 emotes = {
-    "wave": "<:AlgebraWave:1129023384970346516>",
-    "cry": "<:AlgebraCry:1187121308266397828>",
-    "ded": "<:AlgebraDed:1129024593286410240>",
-    "think": "<:AlgebraThink:1187121216583127181>",
-    "pout": "<:AlgebraPout:1187121255711789136>",
-    "peek": "<:AlgebraPeek:1187121288251183175>",
-    "comfy": "<:AlgebraComfy:1185343786130358422>",
-    "ayaya": "<:AlgebraComfy:1185343786130358422>",
-    "yorumot": "<:yorumot:1130433415460700210>"
+    "wave": "<:KiiWave:1213267949784137738>",
+    "cry": "<:KiiSad:1213268212922196038>",
+    "ded": "<:KiiDed:991726856661377145>",
+    "think": "<a:KiiLoading:1213268025441128478>",
+    "pien": "<:KiiPien:1192124110881439844>",
+    "peek": "<:KiiPeek:983671779220418560>",
+    "comfy": "<:PopKii:1213268163819737201>",
+    "ayaya": "<:KiiAyaya:1213268072467791882>",
+    "yorumot": "<:yorumot:1213268131384926260>"
 }

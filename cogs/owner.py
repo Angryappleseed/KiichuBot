@@ -166,7 +166,7 @@ class Owner(commands.Cog, name="owner"):
 #-----------------------SHUTDOWN THE BOT-------------------------------#
     @commands.hybrid_command(
         name="shutdown",
-        description="Shuts Algebra down.",
+        description="Shuts KiichuBot down.",
     )
     @checks.is_owner()
     async def shutdown(self, context: Context) -> None:
@@ -182,7 +182,7 @@ class Owner(commands.Cog, name="owner"):
         if status_channel:
             shutdown_embed = discord.Embed(
                 title=f"Bye bye! {emotes['cry']}",
-                description="Algebra is now offline.",
+                description="KiichuBot is now offline.",
                 color=colors["red"],
                 timestamp=datetime.now()
             )

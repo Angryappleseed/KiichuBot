@@ -101,6 +101,7 @@ class General(commands.Cog, name="general"):
             'general': "Common commands for regular usage.",
             'logging': "Commands for server logging and monitoring.",
             'moderation': "Commands to help moderate your server.",
+            'modmail': "Modmail commands.",
             'owner': "Commands that are reserved for the bot owner(s)."
         }
 #-------------------- HELP------------------------#
@@ -112,7 +113,7 @@ class General(commands.Cog, name="general"):
     @checks.not_blacklisted()
     @checks.is_moderator()
     async def help(self, ctx):
-        included_cogs = ["general", "logging", "moderation", "owner"]
+        included_cogs = ["general", "logging", "moderation", "modmail", "owner"]
         view = HelpView(ctx, included_cogs)
         embed = view.get_homescreen_embed()
         await ctx.send(embed=embed, view=view)
