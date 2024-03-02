@@ -40,33 +40,36 @@ else:
 
 
 
-# -------------------GET SERVER PREFIXES---------------------------#
+
         
+#--------------Default Prefix in Config.json--------------------#
 default_prefix = config["prefix"]
-async def get_custom_prefix(bot, message):
-    bot_mention = f'<@{bot.user.id}> '
-    prefixes = [bot.default_prefix, bot_mention]
+    
 
-    if message.guild is not None:
-        server_id = str(message.guild.id)
-        custom_prefix = bot.custom_prefixes.get(server_id)
-        if custom_prefix:
-            prefixes = [custom_prefix]
-
-    return tuple(prefixes)
-
-
-#----------------------------KiichuBot BOT-----------------------------#
+#----------------------------KIICHUBOT-----------------------------#
 
 class KiichuBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.log_channel = {} 
 
+# -------------------GET SERVER PREFIXES---------------------------#
+    
+    async def get_custom_prefix(self, message):
+        bot_mention = f'<@{self.user.id}> '
+        prefixes = [self.default_prefix, bot_mention]
+
+        if message.guild is not None:
+            server_id = str(message.guild.id)
+            custom_prefix = self.custom_prefixes.get(server_id)
+            if custom_prefix:
+                prefixes = [custom_prefix]
+
+        return tuple(prefixes)
 
 
 
-bot = KiichuBot(command_prefix=get_custom_prefix, 
+bot = KiichuBot(command_prefix=KiichuBot.get_custom_prefix, 
                  intents=intents, 
                  help_command=None)
 
