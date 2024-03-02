@@ -45,17 +45,17 @@ class Modmail(commands.Cog, name="modmail"):
                 overwrites[role] = discord.PermissionOverwrite(read_messages=True)
 
 
-        # Check if Modmail category exists
+        # check if Modmail category exists
         modmail_category = discord.utils.get(guild.categories, name=self.modmail_category_name)
         if not modmail_category:
-            # Create the Modmail category with overwrites
+            # create the Modmail category with overwrites
             modmail_category = await guild.create_category(self.modmail_category_name, overwrites=overwrites)
             await context.send(f"Created category {modmail_category.name}.")
 
-        # Check if the modmail-logs channel already exists inside Modmail category
+        # check if the modmail-logs channel already exists
         modmail_logs_channel = discord.utils.get(guild.text_channels, name=self.modmail_logs_channel_name, category=modmail_category)
         if not modmail_logs_channel:
-            # Create the modmail-logs channel
+            # create the modmail-logs channel
             modmail_logs_channel = await guild.create_text_channel(self.modmail_logs_channel_name, category=modmail_category)
             await context.send(f"Created the channel {modmail_logs_channel.mention}.")
 
@@ -67,17 +67,75 @@ class Modmail(commands.Cog, name="modmail"):
 
 
 
+#--------------------------CLOSE TICKET------------------------------#
+
+    @commands.hybrid_command(name="close", description="Closes the modmail ticket")
+    @checks.is_moderator()
+    async def close(self, ctx, *, reason="not specified."):
+        # command can only be used in modmail channels
+        modmail_category = discord.utils.get(ctx.guild.categories, name=self.modmail_category_name)
+        modmail_logs_channel = discord.utils.get(ctx.guild.text_channels, name=self.modmail_logs_channel_name)
+        if ctx.channel.category_id != modmail_category.id:
+            embed = discord.Embed(description="This command can only be used in modmail channels.",
+                                color=colors["red"],)
+            await ctx.send(embed=embed)
+            return
+        
+        # extract the user ID from the channel's topic
+        user_id_str = ctx.channel.topic.split("Modmail User ID: ")[-1] if ctx.channel.topic else None
+        try:
+            user_id = int(user_id_str)
+            user = await self.bot.fetch_user(user_id)
+            
+            # Inform the user that their modmail ticket has been closed
+            dm_embed = discord.Embed(
+                title="Modmail Ticket Closed",
+                description=f"Your modmail ticket has been closed.\nReason: {reason}",
+                color=colors["red"],
+                timestamp=datetime.now()
+            )
+            dm_embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar.url)
+            dm_embed.set_footer(text=f"User ID: {ctx.author.id}")
+            await user.send(embed=dm_embed)
+            
+            # Delete the modmail channel
+            await ctx.channel.delete(reason=f"Modmail closed. Reason: {reason}")
+
+            if modmail_logs_channel:
+                log_embed = discord.Embed(
+                    title="Modmail Ticket Closed",
+                    description=f"Ticket for {user.mention} | `{user.id}` was closed by {ctx.author.name}.\nReason: {reason}",
+                    color=colors["red"],
+                    timestamp=datetime.now()
+                )
+                log_embed.set_author(name=f"{ctx.author.name}", icon_url=ctx.author.avatar.url)
+                log_embed.set_footer(text=f"User ID: {user_id}")
+                await modmail_logs_channel.send(embed=log_embed)
+            else:
+                # Optionally handle the case where the logs channel wasn't found; this is up to your discretion.
+                pass
+            
+        except (ValueError, TypeError):
+            await ctx.send(embed=discord.Embed(description="Could not process the user ID from this channel's topic. The channel may not be a valid modmail ticket.",
+                                           color=colors["red"]))
+        except discord.NotFound:
+            await ctx.send(embed=discord.Embed(description="The user associated with this modmail ticket could not be found.",
+                                           color=colors["red"]))
+
+
+
+
 #-------------------ON MESSAGE-------------------------#
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
-        # ignore bot's messages and messages with prefix
+        # ignore bot's messages
         if message.author.bot:
             return
 
-        # if bot is DMd
+        # WHEN BOT IS DM'd
         if isinstance(message.channel, discord.DMChannel):
-            # Check for existing modmail channel or user's intention to create one is handled later
+            # confirm if user wishes to send message
             confirmation_embed = discord.Embed(
                 title="Are you sure you want to send this message to Kiichan's Fox Den?",
                 description=message.content,
@@ -86,7 +144,6 @@ class Modmail(commands.Cog, name="modmail"):
             )
             confirmation_embed.set_footer(text="React with ✅ to confirm or ❌ to cancel.")
             confirmation_message = await message.author.send(embed=confirmation_embed)
-            # Add reactions for the user to confirm or cancel
             await confirmation_message.add_reaction("✅")
             await confirmation_message.add_reaction("❌")
 
@@ -102,7 +159,8 @@ class Modmail(commands.Cog, name="modmail"):
                         color=colors["red"]
                     )
                 await confirmation_message.edit(content="", embed=timedout_embed)
-                
+
+
             else:
                 # if user reacts yes
                 if str(reaction.emoji) == "✅":
@@ -126,12 +184,11 @@ class Modmail(commands.Cog, name="modmail"):
                         channel_topic = f"Modmail User ID: {message.author.id}"
                         user_channel = await guild.create_text_channel(user_channel_name, category=modmail_category, topic=channel_topic)
                         
-                        # Fetch member object from guild to list roles
                         member = guild.get_member(message.author.id)
                         if member:
-                            roles = [role.mention for role in member.roles if role != guild.default_role]  # Exclude @everyone role
+                            roles = [role.mention for role in member.roles if role != guild.default_role] 
                             
-                            # Creating an embed with user information
+                            # create an embed with user's information
                             embed = discord.Embed(title="New Modmail Ticket",
                                                 color=colors["blue"],
                                                 timestamp=datetime.now())
@@ -140,8 +197,18 @@ class Modmail(commands.Cog, name="modmail"):
                             embed.set_footer(text=f"User ID: {message.author.id}")
                             await user_channel.send(embed=embed)
                         
+                        modmail_logs_channel = discord.utils.get(guild.text_channels, name=self.modmail_logs_channel_name)
+                        # log it in modmail-logs
+                        if modmail_logs_channel:
+                            log_embed = discord.Embed(title="New Modmail Ticket",
+                                                    color=colors["green"],
+                                                    timestamp=datetime.now())
+                            log_embed.set_author(name=message.author.name, icon_url=message.author.avatar.url)
+                            log_embed.set_footer(text=f"User ID: {message.author.id}")
+                            await modmail_logs_channel.send(embed=log_embed)
+                        
 
-                    # Received DM embed
+                    # Send user's message to channel
                     embed = discord.Embed(title="Message Received:",
                                         description=message.content,
                                         color=colors["green"],
@@ -160,6 +227,7 @@ class Modmail(commands.Cog, name="modmail"):
                     confirmation_embed.set_footer(text=f"User ID: {message.author.id}")
                     await message.author.send(embed=confirmation_embed)
 
+
                 # if user reacts no
                 elif str(reaction.emoji) == "❌":
                     cancelled_embed = discord.Embed(
@@ -169,27 +237,25 @@ class Modmail(commands.Cog, name="modmail"):
                     )
                     await confirmation_message.edit(content="", embed=cancelled_embed)
 
+
                     
         # if message is sent in modmail channel
         else:
             guild = message.guild
             modmail_category = discord.utils.get(guild.categories, name=self.modmail_category_name)
             if message.channel.category_id == modmail_category.id:
-                # Call get_custom_prefix asynchronously
+
                 current_prefixes = await self.bot.get_custom_prefix(message)
-                
-                # Since we can't use 'await' inside 'any', we loop through prefixes manually
                 message_starts_with_prefix = False
                 for prefix in current_prefixes:
                     if message.content.startswith(prefix):
                         message_starts_with_prefix = True
                         break
-
+                # ignore messages starting with prefix     
                 if message_starts_with_prefix:
-                    # If it does, simply return and do not process the message further
                     return
                 
-                # Extract the user ID from the channel's topic and continue as before
+                # extract the user ID from the channel's topic
                 user_id_str = message.channel.topic.split("Modmail User ID: ")[-1] if message.channel.topic else None
                 try:
                     user_id = int(user_id_str)
@@ -217,6 +283,9 @@ class Modmail(commands.Cog, name="modmail"):
                     log_embed.set_author(name=message.author.name, icon_url=message.author.avatar.url)
                     log_embed.set_footer(text=f"User ID: {message.author.id}")
                     await message.channel.send(embed=log_embed)
+
+
+
                 except (ValueError, TypeError):
                     # Handle cases where the topic does not contain a valid user ID or parsing issues
                     pass
