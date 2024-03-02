@@ -1,6 +1,7 @@
 
 #----------------------DB MANAGER-------------------#
 
+import json
 import os
 import aiosqlite
 
@@ -18,6 +19,76 @@ async def set_guild_prefix(server_id: str, prefix: str):
         )
         await db.commit()
 
+
+#----------------AUTOMATED MESSAGES----------------#
+
+async def add_automated_message(channel_id: str, message: str, interval_seconds: int):
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute(
+            "INSERT INTO automated_messages (channel_id, message, interval_seconds, next_run) VALUES (?, ?, ?, datetime('now', ? || ' seconds'))",
+            (channel_id, message, interval_seconds, interval_seconds)
+        )
+        await db.commit()
+
+
+
+async def remove_automated_message(message_id: int):
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute("DELETE FROM automated_messages WHERE id = ?", (message_id,))
+        await db.commit()
+
+
+
+async def get_automated_messages():
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        cursor = await db.execute("SELECT id, channel_id, message, interval_seconds FROM automated_messages")
+        rows = await cursor.fetchall()
+        return rows
+
+
+async def get_due_automated_messages():
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        cursor = await db.execute(
+            "SELECT id, channel_id, message FROM automated_messages WHERE next_run <= datetime('now')"
+        )
+        rows = await cursor.fetchall()
+        return rows
+
+async def update_next_run(message_id: int, interval_seconds: int):
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute(
+            "UPDATE automated_messages SET next_run = datetime('now', ? || ' seconds') WHERE id = ?",
+            (interval_seconds, message_id)
+        )
+        await db.commit()
+
+
+
+
+
+#---------------------YOUTUBE FEED----------------------------------#
+        
+
+async def update_recent_video_ids(channel_id: str, recent_video_ids: list):
+    recent_video_ids_str = json.dumps(recent_video_ids)
+    
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute("""
+            INSERT INTO youtube_recent_videos (channel_id, recent_video_ids) 
+            VALUES (?, ?) 
+            ON CONFLICT(channel_id) 
+            DO UPDATE SET recent_video_ids=excluded.recent_video_ids""",
+            (channel_id, recent_video_ids_str))
+        await db.commit()
+
+
+async def get_recent_video_ids(channel_id: str):
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        cursor = await db.execute("SELECT recent_video_ids FROM youtube_recent_videos WHERE channel_id = ?", (channel_id,))
+        row = await cursor.fetchone()
+        if row:
+            return json.loads(row[0])
+        return []
 
 
 

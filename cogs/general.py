@@ -1,24 +1,36 @@
 
 #---------------------GENERAL COMMANDS---------------------#
 
-import json
+import aiosqlite
+import os
+import re
+
 import discord
-import platform
 
 from discord import app_commands
 from discord.ext import commands
-from discord.ext import menus
+from discord.ext import menus, tasks
 from discord.ext.commands import Context
 from discord.ext.commands.core import has_guild_permissions, has_permissions
 
 from typing import Optional
 
 from helpers import checks
-from helpers.database import set_guild_prefix
+from helpers.database import(
+    set_guild_prefix,
+    add_automated_message,
+    remove_automated_message,
+    get_automated_messages,
+    get_due_automated_messages,
+    update_next_run
+    )
 
 
 from helpers.colors import colors
 from helpers.emotes import emotes
+
+
+DATABASE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'database.db')
 
 
 #--------------------HELP PAGINATION----------------#
@@ -90,6 +102,45 @@ class HelpView(discord.ui.View):
 
 
 
+def parse_time_interval(interval: str) -> int:
+    match = re.match(r"(\d+)(s|min|hr|day)$", interval)
+    if not match:
+        raise ValueError("Invalid time interval format.")
+    
+    amount, unit = match.groups()
+    amount = int(amount)
+    
+    if unit == "s":
+        return amount
+    elif unit == "min":
+        return amount * 60
+    elif unit == "hr":
+        return amount * 3600
+    elif unit == "day":
+        return amount * 86400
+    else:
+        raise ValueError("Invalid time unit.")
+
+
+
+
+def format_interval(seconds):
+    units = [
+        ('day', 86400),
+        ('hr', 3600),
+        ('min', 60),
+        ('s', 1),
+    ]
+    parts = []
+    for name, count in units:
+        value = seconds // count
+        if value:
+            seconds -= value * count
+            parts.append(f"{value} {name}")
+
+    return ' '.join(parts)
+
+
 #--------------------------COMMANDS-------------------------------#
     
 
@@ -104,6 +155,35 @@ class General(commands.Cog, name="general"):
             'modmail': "Modmail commands.",
             'owner': "Commands that are reserved for the bot owner(s)."
         }
+
+#---------Automated message loop--------------------#
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.automated_message_task.start()
+
+    @tasks.loop(seconds=60)
+    async def automated_message_task(self):
+        messages = await get_due_automated_messages()
+        for msg_id, channel_id, message in messages:
+            channel = self.bot.get_channel(int(channel_id))
+            if channel:
+                await channel.send(message)
+                async with aiosqlite.connect(DATABASE_PATH) as db:
+                    cursor = await db.execute(
+                        "SELECT interval_seconds FROM automated_messages WHERE id = ?",
+                        (msg_id,)
+                    )
+                    interval = await cursor.fetchone()
+                if interval:
+                    await update_next_run(msg_id, interval[0])
+
+    @automated_message_task.before_loop
+    async def before_automated_message_task(self):
+        await self.bot.wait_until_ready()
+
+
+
+
 #-------------------- HELP------------------------#
 
     @commands.hybrid_command(
@@ -184,6 +264,57 @@ class General(commands.Cog, name="general"):
             await context.send(message)
 
 
+#-------------------------ADD AUTO MESSAGE COMMAND--------------------------#
+
+    @commands.hybrid_command(
+        name="addautomessage",
+        description="Schedules a new automated message."
+    )
+    @checks.is_moderator()
+    async def add_automated_message(self, ctx: commands.Context, channel: discord.TextChannel, interval: str, *, message: str):
+        interval_seconds = parse_time_interval(interval)
+        await add_automated_message(str(channel.id), message, interval_seconds)
+        embed = discord.Embed(
+            description=f"Automated message scheduled in {channel.mention} every {interval}.",
+            color=colors["blue"]
+        )
+        await ctx.send(embed=embed)
+        await channel.send(message)
+
+
+
+
+#-------------------------REMOVE AUTO MESSAGE COMMAND--------------------------#
+
+    @commands.hybrid_command(
+        name="removeautomessage",
+        description="Removes a specified automated message."
+    )
+    @checks.is_moderator()
+    async def remove_automated_message(self, ctx: commands.Context, message_id: int):
+        await remove_automated_message(message_id)
+        embed = discord.Embed(
+            description=f"Automated message with ID {message_id} has been removed.",
+            color=colors["blue"]
+        )
+        await ctx.send(embed=embed)
+
+
+
+#-------------------------LIST AUTO MESSAGE COMMAND--------------------------#
+
+    @commands.hybrid_command(
+        name="listautomessages",
+        description="Lists all scheduled automated messages."
+    )
+    @checks.is_moderator()
+    async def list_automated_messages(self, ctx: commands.Context):
+        messages = await get_automated_messages()
+        embed = discord.Embed(title="Automated Messages", color=colors["blue"])
+        for msg in messages:
+            formatted_interval = format_interval(msg[3])
+            embed.add_field(name=f"ID: {msg[0]}", value=f"Channel: <#{msg[1]}> - Interval: {formatted_interval}\nMessage: {msg[2]}", inline=False)
+        await ctx.send(embed=embed)
 
 
 

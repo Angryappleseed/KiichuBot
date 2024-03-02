@@ -53,3 +53,18 @@ CREATE TABLE IF NOT EXISTS `sticky_roles` (
   `role_ids` text,
   PRIMARY KEY (`user_id`, `guild_id`)
 );
+
+
+CREATE TABLE IF NOT EXISTS automated_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel_id TEXT NOT NULL,
+    message TEXT NOT NULL,
+    interval_seconds INTEGER NOT NULL,
+    next_run DATETIME NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS youtube_recent_videos (
+    channel_id TEXT PRIMARY KEY,
+    recent_video_ids TEXT NOT NULL
+);
