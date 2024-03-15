@@ -69,27 +69,21 @@ async def update_next_run(message_id: int, interval_seconds: int):
 #---------------------YOUTUBE FEED----------------------------------#
         
 
-async def update_recent_video_ids(channel_id: str, recent_video_ids: list):
-    recent_video_ids_str = json.dumps(recent_video_ids)
-    
+async def update_last_video_id(channel_id: str, video_id: str, publish_date: str):
     async with aiosqlite.connect(DATABASE_PATH) as db:
         await db.execute("""
-            INSERT INTO youtube_recent_videos (channel_id, recent_video_ids) 
-            VALUES (?, ?) 
-            ON CONFLICT(channel_id) 
-            DO UPDATE SET recent_video_ids=excluded.recent_video_ids""",
-            (channel_id, recent_video_ids_str))
+            INSERT INTO youtube_last_video (channel_id, last_video_id, publish_date) VALUES (?, ?, ?)
+            ON CONFLICT(channel_id) DO UPDATE SET last_video_id = excluded.last_video_id, publish_date = excluded.publish_date
+            """, (channel_id, video_id, publish_date))
         await db.commit()
 
-
-async def get_recent_video_ids(channel_id: str):
+async def get_last_video_id(channel_id: str):
     async with aiosqlite.connect(DATABASE_PATH) as db:
-        cursor = await db.execute("SELECT recent_video_ids FROM youtube_recent_videos WHERE channel_id = ?", (channel_id,))
+        cursor = await db.execute("SELECT last_video_id, publish_date FROM youtube_last_video WHERE channel_id = ?", (channel_id,))
         row = await cursor.fetchone()
         if row:
-            return json.loads(row[0])
-        return []
-
+            return row[0], row[1]
+        return None, None
 
 
 

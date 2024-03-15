@@ -64,7 +64,8 @@ CREATE TABLE IF NOT EXISTS automated_messages (
 );
 
 
-CREATE TABLE IF NOT EXISTS youtube_recent_videos (
+CREATE TABLE IF NOT EXISTS youtube_last_video (
     channel_id TEXT PRIMARY KEY,
-    recent_video_ids TEXT NOT NULL
+    last_video_id TEXT NOT NULL,
+    publish_date TEXT NOT NULL
 );
