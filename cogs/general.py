@@ -150,8 +150,6 @@ class General(commands.Cog, name="general"):
         self.bot = bot
         self.cog_descriptions = {
             'general': "Common commands for regular usage.",
-            'logging': "Commands for server logging and monitoring.",
-            'moderation': "Commands to help moderate your server.",
             'modmail': "Modmail commands.",
             'owner': "Commands that are reserved for the bot owner(s)."
         }
@@ -193,7 +191,7 @@ class General(commands.Cog, name="general"):
     @checks.not_blacklisted()
     @checks.is_moderator()
     async def help(self, ctx):
-        included_cogs = ["general", "logging", "moderation", "modmail", "owner"]
+        included_cogs = ["general", "modmail", "owner"]
         view = HelpView(ctx, included_cogs)
         embed = view.get_homescreen_embed()
         await ctx.send(embed=embed, view=view)
@@ -251,6 +249,10 @@ class General(commands.Cog, name="general"):
     )
     @checks.not_blacklisted()
     @checks.is_moderator()
+    @app_commands.describe(
+        channel="The target channel of the message.",
+        message="The message you want sent.",
+    )
     async def echo(self, context: commands.Context, channel: Optional[discord.TextChannel], *, message: str) -> None:
         if channel:
             await channel.send(message)
@@ -271,6 +273,11 @@ class General(commands.Cog, name="general"):
         description="Schedules a new automated message."
     )
     @checks.is_moderator()
+    @app_commands.describe(
+        channel="The target channel for the messages.",
+        interval="The time between repeats (s, min, hr).",
+        message="The message you want to be sent."
+    )
     async def add_automated_message(self, ctx: commands.Context, channel: discord.TextChannel, interval: str, *, message: str):
         interval_seconds = parse_time_interval(interval)
         await add_automated_message(str(channel.id), message, interval_seconds)
