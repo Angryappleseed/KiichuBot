@@ -3,6 +3,7 @@
 
 import json
 import asyncio
+import io
 
 import discord
 from discord.ext import commands
@@ -14,6 +15,11 @@ from datetime import datetime
 from helpers import checks
 from helpers.colors import colors
 from helpers.emotes import emotes
+from helpers.database import(
+    add_new_ticket,
+    get_ticket_number
+    )
+
 
 class Modmail(commands.Cog, name="modmail"):
     def __init__(self, bot):
@@ -81,6 +87,13 @@ class Modmail(commands.Cog, name="modmail"):
             await ctx.send(embed=embed)
             return
         
+        # Retrieve the ticket number from the database
+        ticket_number = await get_ticket_number(str(ctx.channel.id))
+        if ticket_number is None:
+            await ctx.send(embed=discord.Embed(description="Could not find the modmail ticket in the database.", color=colors["red"]))
+            return
+
+        
         # extract the user ID from the channel's topic
         user_id_str = ctx.channel.topic.split("Modmail User ID: ")[-1] if ctx.channel.topic else None
         try:
@@ -89,7 +102,7 @@ class Modmail(commands.Cog, name="modmail"):
             
             # Inform the user that their modmail ticket has been closed
             dm_embed = discord.Embed(
-                title="Modmail Ticket Closed",
+                title=f"Modmail Ticket #{ticket_number} Closed",
                 description=f"Your modmail ticket has been closed.\nReason: {reason}",
                 color=colors["red"],
                 timestamp=datetime.now()
@@ -103,7 +116,7 @@ class Modmail(commands.Cog, name="modmail"):
 
             if modmail_logs_channel:
                 log_embed = discord.Embed(
-                    title="Modmail Ticket Closed",
+                    title=f"Modmail Ticket #{ticket_number} Closed",
                     description=f"Ticket for {user.mention} | `{user.id}` was closed by {ctx.author.name}.\nReason: {reason}",
                     color=colors["red"],
                     timestamp=datetime.now()
@@ -135,10 +148,12 @@ class Modmail(commands.Cog, name="modmail"):
 
         # WHEN BOT IS DM'd
         if isinstance(message.channel, discord.DMChannel):
+            attachment_urls = [attachment.url for attachment in message.attachments]
+            message_content_with_attachments = f"{message.content}\n" + "\n".join(attachment_urls)
             # confirm if user wishes to send message
             confirmation_embed = discord.Embed(
                 title="Are you sure you want to send this message to Kiichan's Fox Den?",
-                description=message.content,
+                description=message_content_with_attachments,
                 color=colors["gold"],
                 timestamp=datetime.now()
             )
@@ -152,7 +167,7 @@ class Modmail(commands.Cog, name="modmail"):
 
             try:
                 reaction, user = await self.bot.wait_for("reaction_add", timeout=60.0, check=check)
-            except asyncio.TimeoutError:
+            except asyncio.TimeoutError:   
                 timedout_embed = discord.Embed(
                         title="Modmail Request Timed Out",
                         description="Your modmail request has been successfully cancelled.",
@@ -185,11 +200,13 @@ class Modmail(commands.Cog, name="modmail"):
                         user_channel = await guild.create_text_channel(user_channel_name, category=modmail_category, topic=channel_topic)
                         
                         member = guild.get_member(message.author.id)
+                        ticket_number = await add_new_ticket(str(user_channel.id), str(message.author.id))
+
                         if member:
                             roles = [role.mention for role in member.roles if role != guild.default_role] 
                             
                             # create an embed with user's information
-                            embed = discord.Embed(title="New Modmail Ticket",
+                            embed = discord.Embed(title=f"Modmail Ticket #{ticket_number} Opened",
                                                 color=colors["blue"],
                                                 timestamp=datetime.now())
                             embed.add_field(name="User", value=f"{message.author.mention}\n{message.author.id}", inline=True)
@@ -200,7 +217,7 @@ class Modmail(commands.Cog, name="modmail"):
                         modmail_logs_channel = discord.utils.get(guild.text_channels, name=self.modmail_logs_channel_name)
                         # log it in modmail-logs
                         if modmail_logs_channel:
-                            log_embed = discord.Embed(title="New Modmail Ticket",
+                            log_embed = discord.Embed(title=f"Modmail Ticket #{ticket_number} Opened",
                                                     color=colors["green"],
                                                     timestamp=datetime.now())
                             log_embed.set_author(name=message.author.name, icon_url=message.author.avatar.url)
@@ -210,7 +227,7 @@ class Modmail(commands.Cog, name="modmail"):
 
                     # Send user's message to channel
                     embed = discord.Embed(title="Message Received:",
-                                        description=message.content,
+                                        description=message_content_with_attachments,
                                         color=colors["green"],
                                         timestamp=datetime.now())
                     embed.set_author(name=message.author.name, icon_url=message.author.avatar.url)
@@ -220,7 +237,7 @@ class Modmail(commands.Cog, name="modmail"):
                     # Send confirmation embed to the user in DM
                     confirmation_embed = discord.Embed(
                         title="Message Sent:",
-                        description=f"{message.content}",
+                        description=f"{message_content_with_attachments}",
                         color=colors["green"],
                         timestamp=datetime.now()
                     )
@@ -243,6 +260,8 @@ class Modmail(commands.Cog, name="modmail"):
         else:
             guild = message.guild
             modmail_category = discord.utils.get(guild.categories, name=self.modmail_category_name)
+            attachment_urls = [attachment.url for attachment in message.attachments]
+            message_content_with_attachments = f"{message.content}\n" + "\n".join(attachment_urls)
             if message.channel.category_id == modmail_category.id:
 
                 current_prefixes = await self.bot.get_custom_prefix(message)
@@ -264,35 +283,50 @@ class Modmail(commands.Cog, name="modmail"):
                     # Send the DM to the user
                     embed = discord.Embed(
                         title="Message Received:",
-                        description=message.content,
+                        description=message_content_with_attachments,
                         color=colors["red"],
                         timestamp=datetime.now()
                     )
                     embed.set_author(name=message.author.name, icon_url=message.author.avatar.url)
                     embed.set_footer(text=f"User ID: {message.author.id}")
-                    await user.send(embed=embed)
-                    await message.delete()
+                    try:
+                        await user.send(embed=embed)
+                        await message.delete()
 
-                    # Log that the message was sent
-                    log_embed = discord.Embed(
-                        title="Message Sent:",
-                        description=f"{message.content}",
-                        color=colors["red"],
-                        timestamp=datetime.now()
-                    )
-                    log_embed.set_author(name=message.author.name, icon_url=message.author.avatar.url)
-                    log_embed.set_footer(text=f"User ID: {message.author.id}")
-                    await message.channel.send(embed=log_embed)
+                        # Log that the message was sent
+                        log_embed = discord.Embed(
+                            title="Message Sent:",
+                            description=f"{message_content_with_attachments}",
+                            color=colors["red"],
+                            timestamp=datetime.now()
+                        )
+                        log_embed.set_author(name=message.author.name, icon_url=message.author.avatar.url)
+                        log_embed.set_footer(text=f"User ID: {message.author.id}")
+                        await message.channel.send(embed=log_embed)
+
+
+                    except discord.errors.Forbidden:
+                        forbidden_embed = discord.Embed(
+                            title="Failed to Deliver Message",
+                            description="The message could not be delivered because the user has DMs disabled, has blocked the bot, or is not in the server anymore.",
+                            color=colors["red"]
+                        )
+                        await message.channel.send(embed=forbidden_embed)
+
+                    
 
 
 
                 except (ValueError, TypeError):
-                    # Handle cases where the topic does not contain a valid user ID or parsing issues
+                    # if topic does not contain a valid user ID or parsing issues
                     pass
                 except discord.NotFound:
-                    # Handle the case where the user cannot be found
-                    pass
-
+                    not_found_embed = discord.Embed(
+                        title="Unable to Deliver Message",
+                        description="It seems like target is not a member of the server anymore.",
+                        color=colors["red"]
+                    )
+                    await message.author.send(embed=not_found_embed)
 
 async def setup(bot):
 

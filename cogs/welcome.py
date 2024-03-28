@@ -66,5 +66,6 @@ class Welcome(commands.Cog):
                 if channel:
                     await channel.send(f"Welcome to the server, {member.mention}!", file=file)
 
+
 async def setup(bot):
     await bot.add_cog(Welcome(bot))

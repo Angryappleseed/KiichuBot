@@ -349,3 +349,41 @@ async def get_sticky_roles(user_id: str, guild_id: str) -> list:
         row = await cursor.fetchone()
         return row[0].split(",") if row else []
     
+
+
+
+
+
+
+#----------------------MODMAIL---------------------------#
+
+
+async def add_new_ticket(channel_id: str, user_id: str):
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute(
+            "INSERT INTO modmail_tickets (channel_id, user_id) VALUES (?, ?)",
+            (channel_id, user_id)
+        )
+        await db.commit()
+
+        cursor = await db.execute("SELECT last_insert_rowid()")
+        last_row_id = await cursor.fetchone()
+        return last_row_id[0]
+
+
+async def close_ticket(channel_id: str):
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute(
+            "UPDATE modmail_tickets SET close_date = CURRENT_TIMESTAMP WHERE channel_id = ?",
+            (channel_id,)
+        )
+        await db.commit()
+
+
+async def get_ticket_number(channel_id: str):
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        async with db.execute("SELECT ticket_number FROM modmail_tickets WHERE channel_id = ?", (channel_id,)) as cursor:
+            row = await cursor.fetchone()
+            if row:
+                return row[0]
+            return None

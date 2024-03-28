@@ -69,3 +69,11 @@ CREATE TABLE IF NOT EXISTS youtube_last_video (
     last_video_id TEXT NOT NULL,
     publish_date TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS modmail_tickets (
+    ticket_number INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    opened DATETIME NOT NULL DEFAULT (datetime('now')),
+    closed DATETIME
+);
