@@ -9,8 +9,9 @@ Dont forget to remove all of these instructions and save this file as 'config.js
   "owners": [Replace with your user id and any other people you want to have access to the Owner commands (VERY risky to give anyone else), separated by commas],
   "trustedUsers": [Replace with your user id and the user id's of your trusted users (which get access to trusted.py commands), separated by commas],
   "modRoles": [Replace with IDs of your mod roles, separated by commas],
-  "dm_channel_id": "Replace with the channel id where you want messages DM'd to the bot to be viewed from.",
   "status_channel_id": "Replace with the channel id where you want the bot to send startup/shutdown messages in your server",
+  "genchat_channel_id": "Replace with the channel id of gen chat",
   "bot_guild_id": "Replace with your bot's primary guild id here",
-  "sync_commands_globally": false
+  "sync_commands_globally": false,
+  "YOUTUBE_API_KEY": "Replace with your Google API key to use Youtube Data API v3"
 }
