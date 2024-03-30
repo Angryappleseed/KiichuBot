@@ -96,11 +96,12 @@ class Modmail(commands.Cog, name="modmail"):
         
         # extract the user ID from the channel's topic
         user_id_str = ctx.channel.topic.split("Modmail User ID: ")[-1] if ctx.channel.topic else None
+
         try:
             user_id = int(user_id_str)
             user = await self.bot.fetch_user(user_id)
             
-            # Inform the user that their modmail ticket has been closed
+            # Inform user that their ticket was closed
             dm_embed = discord.Embed(
                 title=f"Modmail Ticket Closed",
                 description=f"Your modmail ticket has been closed.\nReason: {reason}",
@@ -114,6 +115,8 @@ class Modmail(commands.Cog, name="modmail"):
             # Delete the modmail channel
             await ctx.channel.delete(reason=f"Modmail closed. Reason: {reason}")
 
+
+            # Log the closure in modmail-logs
             if modmail_logs_channel:
                 log_embed = discord.Embed(
                     title=f"Modmail Ticket #{ticket_number} Closed",
@@ -125,7 +128,7 @@ class Modmail(commands.Cog, name="modmail"):
                 log_embed.set_footer(text=f"User ID: {user_id}")
                 await modmail_logs_channel.send(embed=log_embed)
             else:
-                # Optionally handle the case where the logs channel wasn't found; this is up to your discretion.
+                # if logs channel wasn't found
                 pass
             
         except (ValueError, TypeError):
@@ -260,6 +263,15 @@ class Modmail(commands.Cog, name="modmail"):
                     )
                     confirmation_embed.set_footer(text=f"User ID: {message.author.id}")
                     await message.author.send(embed=confirmation_embed, files=files)
+
+
+
+                    try:
+                        await confirmation_message.delete()
+                    except discord.NotFound:
+                        pass
+                    except discord.Forbidden:
+                        pass
 
 
                 # if user reacts no
