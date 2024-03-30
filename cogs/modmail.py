@@ -31,6 +31,7 @@ class Modmail(commands.Cog, name="modmail"):
 #----------------------SETUP-------------------------------#
 
     @commands.hybrid_command(name="setupmodmail", description="Sets up the modmail system.")
+    @checks.not_blacklisted()
     @checks.is_owner()
     async def setup_modmail(self, context: Context) -> None:
         guild = context.guild
@@ -76,6 +77,7 @@ class Modmail(commands.Cog, name="modmail"):
 #--------------------------CLOSE TICKET------------------------------#
 
     @commands.hybrid_command(name="close", description="Closes the modmail ticket")
+    @checks.not_blacklisted()
     @checks.is_moderator()
     async def close(self, ctx, *, reason="not specified."):
         # command can only be used in modmail channels
