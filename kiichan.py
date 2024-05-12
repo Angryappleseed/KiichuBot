@@ -177,21 +177,21 @@ async def on_ready():
 
 
 
-    # STARTUP MESSAGES
-    bot_guild_id = int(config["bot_guild_id"])
-    bot.guild = bot.get_guild(bot_guild_id)
-    status_channel_id = int(config["status_channel_id"])
-    status_channel = bot.get_channel(status_channel_id)
-    if status_channel:
-        startup_embed = discord.Embed(title=f"Hey hey! I am up and ready to go! {emotes['wave']}", 
-                                      description=f"KiichuBot is now online. {emotes['comfy']}", 
-                                      color=colors["green"], 
-                                      timestamp=datetime.now()
-                                      )
-        startup_embed.set_author(name="KiichuBot", icon_url=bot.guild.icon.url)
-        await status_channel.send(embed=startup_embed)
-    else:
-        bot.logger.warning("Status channel not found. Unable to send startup and shutdown embeds.")
+    # # STARTUP MESSAGES
+    # bot_guild_id = int(config["bot_guild_id"])
+    # bot.guild = bot.get_guild(bot_guild_id)
+    # status_channel_id = int(config["status_channel_id"])
+    # status_channel = bot.get_channel(status_channel_id)
+    # if status_channel:
+    #     startup_embed = discord.Embed(title=f"Hey hey! I am up and ready to go! {emotes['wave']}", 
+    #                                   description=f"KiichuBot is now online. {emotes['comfy']}", 
+    #                                   color=colors["green"], 
+    #                                   timestamp=datetime.now()
+    #                                   )
+    #     startup_embed.set_author(name="KiichuBot", icon_url=bot.guild.icon.url)
+    #     await status_channel.send(embed=startup_embed)
+    # else:
+    #     bot.logger.warning("Status channel not found. Unable to send startup and shutdown embeds.")
         
 
 
