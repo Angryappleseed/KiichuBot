@@ -4,6 +4,7 @@
 import aiosqlite
 import os
 import re
+import json
 
 import discord
 
@@ -31,6 +32,14 @@ from helpers.emotes import emotes
 
 
 DATABASE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'database.db')
+
+# Load the role IDs from config.json
+with open('config.json', 'r') as config_file:
+    config = json.load(config_file)
+
+HEADPATTERS_ROLE_ID = int(config['headpatters_role_id'])
+FRESH_MEAT_ROLE_ID = int(config['fresh_meat_role_id'])
+
 
 
 #--------------------HELP PAGINATION----------------#
@@ -150,7 +159,6 @@ class General(commands.Cog, name="general"):
         self.bot = bot
         self.cog_descriptions = {
             'general': "Common commands for regular usage.",
-            'modmail': "Modmail commands.",
             'owner': "Commands that are reserved for the bot owner(s)."
         }
 
@@ -181,6 +189,17 @@ class General(commands.Cog, name="general"):
 
 
 
+#---------Role update listener--------------------#
+    @commands.Cog.listener()
+    async def on_member_update(self, before, after):
+        if HEADPATTERS_ROLE_ID in [role.id for role in after.roles] and FRESH_MEAT_ROLE_ID in [role.id for role in before.roles]:
+            fresh_meat_role = discord.utils.get(after.guild.roles, id=FRESH_MEAT_ROLE_ID)
+            if fresh_meat_role:
+                await after.remove_roles(fresh_meat_role)
+
+
+
+
 
 #-------------------- HELP------------------------#
 
@@ -191,7 +210,7 @@ class General(commands.Cog, name="general"):
     @checks.not_blacklisted()
     @checks.is_moderator()
     async def help(self, ctx):
-        included_cogs = ["general", "modmail", "owner"]
+        included_cogs = ["general", "owner"]
         view = HelpView(ctx, included_cogs)
         embed = view.get_homescreen_embed()
         await ctx.send(embed=embed, view=view)
