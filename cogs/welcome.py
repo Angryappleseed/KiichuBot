@@ -11,7 +11,7 @@ class Welcome(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         welcome_channel_id = 1212649801305554974
-        template_path = './images/Kii_Valentines2.png'
+        template_path = './images/Aestya.png'
 
         async with aiohttp.ClientSession() as session:
             async with session.get(str(member.avatar.replace(size=256).url)) as resp:
@@ -35,8 +35,8 @@ class Welcome(commands.Cog):
 
                 template_width, template_height = template.size
                 avatar_width, avatar_height = bordered_avatar.size
-                #avatar_position = ((template_width - avatar_width) // 2, (template_height - avatar_height) // 2)
-                avatar_position = (820, 360)
+                avatar_position = ((template_width - avatar_width) // 2, (template_height - avatar_height) // 2)
+                #avatar_position = (820, 360)
 
                 draw = ImageDraw.Draw(template)
                 try:
@@ -49,8 +49,8 @@ class Welcome(commands.Cog):
                 left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
                 text_width = right - left
                 text_height = bottom - top
-                #text_position = ((template_width - text_width) // 2, avatar_position[1] - text_height - 50)
-                text_position = (1000, 420)
+                text_position = ((template_width - text_width) // 2, avatar_position[1] - text_height - 50)
+                #text_position = (1000, 420)
 
                 draw.text(text_position, text, fill=(142, 38, 32), font=font)
 

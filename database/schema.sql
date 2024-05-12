@@ -77,3 +77,12 @@ CREATE TABLE IF NOT EXISTS modmail_tickets (
     opened DATETIME NOT NULL DEFAULT (datetime('now')),
     closed DATETIME
 );
+
+CREATE TABLE IF NOT EXISTS modmail_messages (
+    message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_number INTEGER NOT NULL,
+    author_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    timestamp DATETIME NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (ticket_number) REFERENCES modmail_tickets(ticket_number) ON DELETE CASCADE
+);

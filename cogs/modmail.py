@@ -224,6 +224,7 @@ class Modmail(commands.Cog, name="modmail"):
                             # create an embed with user's information
                             roles = [role.mention for role in member.roles if role != guild.default_role] 
                             embed = discord.Embed(title=f"Modmail Ticket #{ticket_number} Opened",
+                                                  description=f"Messages starting with the bot prefix are ignored.\nUse the command =close [reason] to close this ticket.",
                                                 color=colors["blue"],
                                                 timestamp=datetime.now())
                             embed.add_field(name="User", value=f"{message.author.mention}\n{message.author.id}", inline=True)

@@ -322,7 +322,7 @@ class Owner(commands.Cog, name="owner"):
         )
 
         embed = discord.Embed(
-            description=f"My presence has been set!. Presence: {presence.capitalize()}, Status: {status} {emotes['comfy']}",
+            description=f"My presence has been set!. Presence: {presence.capitalize()}, Status: {status}",
             color=colors["blue"],
         )
         await context.send(embed=embed)
