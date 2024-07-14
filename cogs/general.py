@@ -5,6 +5,7 @@ import aiosqlite
 import os
 import re
 import json
+from datetime import datetime, timedelta, timezone
 
 import discord
 
@@ -161,6 +162,8 @@ class General(commands.Cog, name="general"):
             'general': "Common commands for regular usage.",
             'owner': "Commands that are reserved for the bot owner(s)."
         }
+        self.min_account_age_days = 7
+        self.log_channel_id = 906624474403717141
 
 #---------Automated message loop--------------------#
     @commands.Cog.listener()
@@ -199,6 +202,33 @@ class General(commands.Cog, name="general"):
 
 
 
+
+#------------NEW ACCOUNT VERIFICATION------------------#
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member):
+        account_age_days = (datetime.now(timezone.utc) - member.created_at).days
+        if account_age_days < self.min_account_age_days:
+            try:
+                await member.send(
+                    f"Hello {member.name}, your account is suspected to be an alt in {member.guild.name}. "
+                    f"If you believe this to be an error, please feel free to add and DM `angryappleseed` about the issue."
+                )
+            except discord.Forbidden:
+                pass 
+
+            await member.kick(reason=f"Account is too new. Must be at least {self.min_account_age_days} days old.")
+
+            # Log the kick action
+            log_channel = self.bot.get_channel(self.log_channel_id)
+            if log_channel:
+                embed = discord.Embed(
+                    title="Suspected Alt Kicked",
+                    description=f"**User: **{member.name}{member.mention}\nAccount is only {account_age_days} days old. (required age is {self.min_account_age_days} days)",
+                    color=colors["red"],
+                    timestamp=datetime.now()
+                )
+                embed.set_footer(text=f"User ID: {member.id}")
+                await log_channel.send(embed=embed)
 
 
 #-------------------- HELP------------------------#
