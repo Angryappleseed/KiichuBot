@@ -2,6 +2,7 @@
 #---------------------GENERAL COMMANDS---------------------#
 
 import aiosqlite
+import asyncio
 import os
 import re
 import json
@@ -40,6 +41,7 @@ with open('config.json', 'r') as config_file:
 
 HEADPATTERS_ROLE_ID = int(config['headpatters_role_id'])
 FRESH_MEAT_ROLE_ID = int(config['fresh_meat_role_id'])
+FAILED_VERIFY_ROLE_ID = int(config['failed_verify_role_id']) 
 
 
 
@@ -163,7 +165,7 @@ class General(commands.Cog, name="general"):
             'owner': "Commands that are reserved for the bot owner(s)."
         }
         self.min_account_age_days = 7
-        self.log_channel_id = 906624474403717141
+        self.log_channel_id = 1261728725729542219
 
 #---------Automated message loop--------------------#
     @commands.Cog.listener()
@@ -195,10 +197,33 @@ class General(commands.Cog, name="general"):
 #---------Role update listener--------------------#
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
+        # Detect if when someone gets headpatters to remove fresh meat
         if HEADPATTERS_ROLE_ID in [role.id for role in after.roles] and FRESH_MEAT_ROLE_ID in [role.id for role in before.roles]:
             fresh_meat_role = discord.utils.get(after.guild.roles, id=FRESH_MEAT_ROLE_ID)
             if fresh_meat_role:
                 await after.remove_roles(fresh_meat_role)
+
+        # Detect if someone failed verify
+        if FAILED_VERIFY_ROLE_ID in [role.id for role in after.roles] and FAILED_VERIFY_ROLE_ID not in [role.id for role in before.roles]:
+            log_channel = self.bot.get_channel(self.log_channel_id)
+            if log_channel:
+                embed = discord.Embed(
+                    title="Potential Bot Kicked",
+                    description=f"**User: **{after.name}{after.mention}\nUser clicked on the button that tells them NOT TO CLICK ON, so they were automatically removed.",
+                    color=colors["red"],
+                    timestamp=datetime.now()
+                )
+                embed.set_footer(text=f"User ID: {after.id}")
+                await log_channel.send(embed=embed)
+
+            failed_verify_role = discord.utils.get(after.guild.roles, id=FAILED_VERIFY_ROLE_ID)
+            if failed_verify_role:
+                await after.remove_roles(failed_verify_role)
+
+            # Adding a short delay before kicking the user
+            await asyncio.sleep(2)
+
+            await after.kick(reason="Clicked on Bot Deterrent button.")
 
 
 
@@ -229,6 +254,8 @@ class General(commands.Cog, name="general"):
                 )
                 embed.set_footer(text=f"User ID: {member.id}")
                 await log_channel.send(embed=embed)
+
+
 
 
 #-------------------- HELP------------------------#
