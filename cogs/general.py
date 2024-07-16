@@ -401,5 +401,40 @@ class General(commands.Cog, name="general"):
 
 
 
+
+#-------------------------REMOVE HEADPATTERS ROLE--------------------------#
+
+    # @commands.hybrid_command(
+    #     name="removeheadpatters",
+    #     description="Removes Headpatters from Legs I Won't Eat."
+    # )
+    # @checks.is_moderator()
+    # async def remove_headpatters(self, ctx: commands.Context):
+    #     guild = ctx.guild
+    #     legs_i_wont_eat_role = guild.get_role(781190734954758154)
+    #     headpatters_role = guild.get_role(752590175711920198)
+
+    #     if not legs_i_wont_eat_role or not headpatters_role:
+    #         embed = discord.Embed(
+    #             description="Could not find the specified roles in the server.",
+    #             color=colors["red"]
+    #         )
+    #         await ctx.send(embed=embed)
+    #         return
+
+    #     removed_count = 0
+    #     for member in guild.members:
+    #         if legs_i_wont_eat_role in member.roles and headpatters_role in member.roles:
+    #             await member.remove_roles(headpatters_role)
+    #             removed_count += 1
+
+    #     embed = discord.Embed(
+    #         description=f"Successfully removed the Headpatters role from {removed_count} users who had the Legs I Won't Eat role.",
+    #         color=colors["blue"]
+    #     )
+    #     await ctx.send(embed=embed)
+
+
+
 async def setup(bot):
     await bot.add_cog(General(bot))
