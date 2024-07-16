@@ -39,8 +39,12 @@ DATABASE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'databa
 with open('config.json', 'r') as config_file:
     config = json.load(config_file)
 
-HEADPATTERS_ROLE_ID = int(config['headpatters_role_id'])
 FRESH_MEAT_ROLE_ID = int(config['fresh_meat_role_id'])
+HEADPATTERS_ROLE_ID = int(config['headpatters_role_id'])
+LIWE_ROLE_ID = int(config['liwe_role_id'])
+PROTECTOR_ROLE_ID = int(config['protector_role_id'])
+GOD_ROLE_ID = int(config['god_role_id'])
+
 FAILED_VERIFY_ROLE_ID = int(config['failed_verify_role_id']) 
 
 
@@ -203,27 +207,54 @@ class General(commands.Cog, name="general"):
             if fresh_meat_role:
                 await after.remove_roles(fresh_meat_role)
 
+
+        # Detect if someone gets fresh meat while having headpatters or higher roles
+        if FRESH_MEAT_ROLE_ID in [role.id for role in after.roles]:
+            higher_roles = {HEADPATTERS_ROLE_ID, LIWE_ROLE_ID, PROTECTOR_ROLE_ID, GOD_ROLE_ID}
+            if any(role.id in higher_roles for role in after.roles):
+                fresh_meat_role = discord.utils.get(after.guild.roles, id=FRESH_MEAT_ROLE_ID)
+                if fresh_meat_role:
+                    await after.remove_roles(fresh_meat_role)
+
+
         # Detect if someone failed verify
         if FAILED_VERIFY_ROLE_ID in [role.id for role in after.roles] and FAILED_VERIFY_ROLE_ID not in [role.id for role in before.roles]:
+            higher_roles = {HEADPATTERS_ROLE_ID, LIWE_ROLE_ID, PROTECTOR_ROLE_ID, GOD_ROLE_ID}
             log_channel = self.bot.get_channel(self.log_channel_id)
-            if log_channel:
-                embed = discord.Embed(
-                    title="Potential Bot Kicked",
-                    description=f"**User: **{after.name}{after.mention}\nUser clicked on the button that tells them NOT TO CLICK ON, so they were automatically removed.",
-                    color=colors["red"],
-                    timestamp=datetime.now()
-                )
-                embed.set_footer(text=f"User ID: {after.id}")
-                await log_channel.send(embed=embed)
 
-            failed_verify_role = discord.utils.get(after.guild.roles, id=FAILED_VERIFY_ROLE_ID)
-            if failed_verify_role:
-                await after.remove_roles(failed_verify_role)
+            if any(role.id in higher_roles for role in after.roles):
+                if log_channel:
+                    embed = discord.Embed(
+                        title="Goofball Clicked on Anti-bot button while in the server.",
+                        description=f"**User: **{after.name} {after.mention}\nUser clicked on the button that tells them NOT TO CLICK ON, but was not kicked due being headpatters+.",
+                        color=colors["gold"],
+                        timestamp=datetime.now()
+                    )
+                    embed.set_footer(text=f"User ID: {after.id}")
+                    await log_channel.send(embed=embed)
 
-            # Adding a short delay before kicking the user
-            await asyncio.sleep(2)
+                failed_verify_role = discord.utils.get(after.guild.roles, id=FAILED_VERIFY_ROLE_ID)
+                if failed_verify_role:
+                    await after.remove_roles(failed_verify_role)
+            else:
+                if log_channel:
+                    embed = discord.Embed(
+                        title="Potential Bot Kicked",
+                        description=f"**User: **{after.name} {after.mention}\nUser clicked on the button that tells them NOT TO CLICK ON, so they were automatically removed.",
+                        color=colors["red"],
+                        timestamp=datetime.now()
+                    )
+                    embed.set_footer(text=f"User ID: {after.id}")
+                    await log_channel.send(embed=embed)
 
-            await after.kick(reason="Clicked on Bot Deterrent button.")
+                failed_verify_role = discord.utils.get(after.guild.roles, id=FAILED_VERIFY_ROLE_ID)
+                if failed_verify_role:
+                    await after.remove_roles(failed_verify_role)
+
+                # Adding a short delay before kicking the user
+                await asyncio.sleep(2)
+
+                await after.kick(reason="Clicked on Bot Deterrent button.")
 
 
 
