@@ -137,9 +137,15 @@ class Tasks(commands.Cog, name="tasks"):
         if not self.auto_mute_enabled:
             return
 
+        # Mute the user when they join the designated voice channel
         if after.channel and after.channel.id == GAME_ROOM_2 and (before.channel is None or before.channel.id != GAME_ROOM_2):
             if not any(role.id in MOD_ROLE_IDS for role in member.roles):
                 await member.edit(mute=True)
+        
+        # Unmute the user when they leave the designated voice channel
+        if before.channel and before.channel.id == GAME_ROOM_2 and (after.channel is None or after.channel.id != GAME_ROOM_2):
+            if not any(role.id in MOD_ROLE_IDS for role in member.roles):
+                await member.edit(mute=False)
 
 
 #---------------TOGGLE NEW-ACCOUNT AUTOREMOVER----------------#
