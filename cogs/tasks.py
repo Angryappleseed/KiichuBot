@@ -98,6 +98,9 @@ class Tasks(commands.Cog, name="tasks"):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
+        if not self.new_account_detection_enabled:
+            return
+
         account_age_days = (datetime.now(timezone.utc) - member.created_at).days
         if account_age_days < self.min_account_age_days:
             try:
@@ -121,6 +124,25 @@ class Tasks(commands.Cog, name="tasks"):
                 )
                 embed.set_footer(text=f"User ID: {member.id}")
                 await log_channel.send(embed=embed)
+
+
+#---------------TOGGLE NEW-ACCOUNT AUTOREMOVER----------------#
+
+    @commands.hybrid_command(
+            name="togglealtdetection",
+            description="Disables the auto-kick feature for new accounts."
+            )
+    @commands.guild_only()
+    @checks.not_blacklisted()
+    @checks.is_moderator()
+    async def togglealtdetection(self, ctx: commands.Context):
+        self.new_account_detection_enabled = not self.new_account_detection_enabled
+        status = "enabled" if self.new_account_detection_enabled else "disabled"
+        embed = discord.Embed(
+            description=f"New account detection has been {status}.",
+            color=colors["blue"]
+        )
+        await ctx.send(embed=embed)
 
 
 async def setup(bot):
