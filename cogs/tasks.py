@@ -62,7 +62,7 @@ class Tasks(commands.Cog, name="tasks"):
                 if log_channel:
                     embed = discord.Embed(
                         title="Goofball clicked on the anti-bot button while in the server",
-                        description=f"**User: **{after.name} {after.mention}\nUser clicked on the button that tells them NOT TO CLICK ON, but was not kicked due to being headpatters+",
+                        description=f"**User: **{after.name} {after.mention}\nUser clicked on the button that tells them NOT TO CLICK ON, but was not kicked due to being headpatters+ {emotes['pien']}",
                         color=colors["gold"],
                         timestamp=datetime.now()
                     )
@@ -77,7 +77,7 @@ class Tasks(commands.Cog, name="tasks"):
                 if log_channel:
                     embed = discord.Embed(
                         title="Potential Bot Kicked",
-                        description=f"**User: **{after.name} {after.mention}\nUser clicked on the button that tells them NOT TO CLICK ON, so they were automatically removed.",
+                        description=f"**User: **{after.name} {after.mention}\nUser clicked on the button that tells them NOT TO CLICK ON, so they were automatically removed. {emotes['pien']}",
                         color=colors["red"],
                         timestamp=datetime.now()
                     )
@@ -107,7 +107,7 @@ class Tasks(commands.Cog, name="tasks"):
         if account_age_days < self.min_account_age_days:
             try:
                 await member.send(
-                    f"Hello {member.name}, your account is suspected to be an alt in {member.guild.name}. "
+                    f"Hello {member.name}, your account is suspected to be an alt in {member.guild.name}. {emotes['pien']}"
                     f"If you believe this to be an error, please feel free to add and DM `angryappleseed` about the issue."
                 )
             except discord.Forbidden:
@@ -120,7 +120,7 @@ class Tasks(commands.Cog, name="tasks"):
             if log_channel:
                 embed = discord.Embed(
                     title="Suspected Alt Kicked",
-                    description=f"**User: **{member.name}{member.mention}\nAccount is only {account_age_days} days old. (required age is {self.min_account_age_days} days)",
+                    description=f"**User: **{member.name}{member.mention}\nAccount is only {account_age_days} days old. (required age is {self.min_account_age_days} days) {emotes['pien']}",
                     color=colors["red"],
                     timestamp=datetime.now()
                 )
@@ -132,7 +132,7 @@ class Tasks(commands.Cog, name="tasks"):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        if before.channel is None and after.channel and after.channel.id == GAME_ROOM_2:
+        if after.channel and after.channel.id == GAME_ROOM_2:
             if not any(role.id in MOD_ROLE_IDS for role in member.roles):
                 await member.edit(mute=True)
 
@@ -151,7 +151,26 @@ class Tasks(commands.Cog, name="tasks"):
         self.new_account_detection_enabled = not self.new_account_detection_enabled
         status = "enabled" if self.new_account_detection_enabled else "disabled"
         embed = discord.Embed(
-            description=f"New account detection has been {status}.",
+            description=f"New account detection has been {status}. {emotes['comfy']}",
+            color=colors["blue"]
+        )
+        await ctx.send(embed=embed)
+
+
+#---------------TOGGLE AUTO-MUTE FEATURE----------------#
+
+    @commands.hybrid_command(
+        name="toggleautomute",
+        description="Toggles the auto-mute feature for the specified voice channel."
+    )
+    @commands.guild_only()
+    @checks.not_blacklisted()
+    @checks.is_moderator()
+    async def toggleautomute(self, ctx: commands.Context):
+        self.auto_mute_enabled = not self.auto_mute_enabled
+        status = "enabled" if self.auto_mute_enabled else "disabled"
+        embed = discord.Embed(
+            description=f"Auto-mute feature has been {status}. {emotes['comfy']}",
             color=colors["blue"]
         )
         await ctx.send(embed=embed)
