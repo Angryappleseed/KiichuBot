@@ -24,6 +24,8 @@ LIWE_ROLE_ID = int(config['liwe_role_id'])
 PROTECTOR_ROLE_ID = int(config['protector_role_id'])
 GOD_ROLE_ID = int(config['god_role_id'])
 FAILED_VERIFY_ROLE_ID = int(config['failed_verify_role_id'])
+MOD_ROLE_IDS = config['modRoles']
+GAME_ROOM_2 = 999729521219616840
 
 
 class Tasks(commands.Cog, name="tasks"):
@@ -124,6 +126,16 @@ class Tasks(commands.Cog, name="tasks"):
                 )
                 embed.set_footer(text=f"User ID: {member.id}")
                 await log_channel.send(embed=embed)
+
+
+ #------------AUTO MUTE IN GAME ROOM 2------------------#
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        if before.channel is None and after.channel and after.channel.id == GAME_ROOM_2:
+            if not any(role.id in MOD_ROLE_IDS for role in member.roles):
+                await member.edit(mute=True)
+
 
 
 #---------------TOGGLE NEW-ACCOUNT AUTOREMOVER----------------#
