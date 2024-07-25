@@ -44,7 +44,6 @@ HEADPATTERS_ROLE_ID = int(config['headpatters_role_id'])
 LIWE_ROLE_ID = int(config['liwe_role_id'])
 PROTECTOR_ROLE_ID = int(config['protector_role_id'])
 GOD_ROLE_ID = int(config['god_role_id'])
-
 FAILED_VERIFY_ROLE_ID = int(config['failed_verify_role_id']) 
 
 
@@ -169,7 +168,7 @@ class General(commands.Cog, name="general"):
             'owner': "Commands that are reserved for the bot owner(s)."
         }
         self.min_account_age_days = 7
-        self.log_channel_id = 1261728725729542219
+        self.log_channel_id = 906624474403717141
 
 #---------Automated message loop--------------------#
     @commands.Cog.listener()
@@ -201,32 +200,29 @@ class General(commands.Cog, name="general"):
 #---------Role update listener--------------------#
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
-        # Detect if when someone gets headpatters to remove fresh meat
-        if HEADPATTERS_ROLE_ID in [role.id for role in after.roles] and FRESH_MEAT_ROLE_ID in [role.id for role in before.roles]:
+        # Detect if a user receives headpatters or higher roles and remove fresh meat role
+        higher_roles = {HEADPATTERS_ROLE_ID, LIWE_ROLE_ID, PROTECTOR_ROLE_ID, GOD_ROLE_ID}
+        received_higher_role = any(role.id in higher_roles for role in after.roles) and not any(role.id in higher_roles for role in before.roles)
+        if received_higher_role and FRESH_MEAT_ROLE_ID in [role.id for role in before.roles]:
             fresh_meat_role = discord.utils.get(after.guild.roles, id=FRESH_MEAT_ROLE_ID)
             if fresh_meat_role:
                 await after.remove_roles(fresh_meat_role)
 
-
         # Detect if someone gets fresh meat while having headpatters or higher roles
         if FRESH_MEAT_ROLE_ID in [role.id for role in after.roles]:
-            higher_roles = {HEADPATTERS_ROLE_ID, LIWE_ROLE_ID, PROTECTOR_ROLE_ID, GOD_ROLE_ID}
             if any(role.id in higher_roles for role in after.roles):
                 fresh_meat_role = discord.utils.get(after.guild.roles, id=FRESH_MEAT_ROLE_ID)
                 if fresh_meat_role:
                     await after.remove_roles(fresh_meat_role)
 
-
         # Detect if someone failed verify
         if FAILED_VERIFY_ROLE_ID in [role.id for role in after.roles] and FAILED_VERIFY_ROLE_ID not in [role.id for role in before.roles]:
-            higher_roles = {HEADPATTERS_ROLE_ID, LIWE_ROLE_ID, PROTECTOR_ROLE_ID, GOD_ROLE_ID}
-            log_channel = self.bot.get_channel(self.log_channel_id)
-
             if any(role.id in higher_roles for role in after.roles):
+                log_channel = self.bot.get_channel(self.log_channel_id)
                 if log_channel:
                     embed = discord.Embed(
-                        title="Goofball Clicked on Anti-bot button while in the server.",
-                        description=f"**User: **{after.name} {after.mention}\nUser clicked on the button that tells them NOT TO CLICK ON, but was not kicked due being headpatters+.",
+                        title="Goofball clicked on the anti-bot button while in the server",
+                        description=f"**User: **{after.name} {after.mention}\nUser clicked on the button that tells them NOT TO CLICK ON, but was not kicked due to being headpatters+",
                         color=colors["gold"],
                         timestamp=datetime.now()
                     )
@@ -237,6 +233,7 @@ class General(commands.Cog, name="general"):
                 if failed_verify_role:
                     await after.remove_roles(failed_verify_role)
             else:
+                log_channel = self.bot.get_channel(self.log_channel_id)
                 if log_channel:
                     embed = discord.Embed(
                         title="Potential Bot Kicked",
@@ -255,7 +252,6 @@ class General(commands.Cog, name="general"):
                 await asyncio.sleep(2)
 
                 await after.kick(reason="Clicked on Bot Deterrent button.")
-
 
 
 
