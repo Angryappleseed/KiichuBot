@@ -33,6 +33,8 @@ class Tasks(commands.Cog, name="tasks"):
         self.bot = bot
         self.min_account_age_days = 7
         self.log_channel_id = 906624474403717141
+        self.new_account_detection_enabled = True
+        self.auto_mute_enabled = True
 
 
 #---------Role update listener--------------------#
@@ -132,10 +134,12 @@ class Tasks(commands.Cog, name="tasks"):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        if after.channel and after.channel.id == GAME_ROOM_2:
+        if not self.auto_mute_enabled:
+            return
+
+        if after.channel and after.channel.id == GAME_ROOM_2 and (before.channel is None or before.channel.id != GAME_ROOM_2):
             if not any(role.id in MOD_ROLE_IDS for role in member.roles):
                 await member.edit(mute=True)
-
 
 
 #---------------TOGGLE NEW-ACCOUNT AUTOREMOVER----------------#
