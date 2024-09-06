@@ -218,7 +218,7 @@ class Moderation(commands.Cog, name="moderation"):
 #--------------------UNBAN---------------------#
     @commands.hybrid_command(
         name="unban",
-        description="Unbans a user from the server.",
+        description="Unbans user from server.",
     )
     @checks.not_blacklisted()
     @commands.has_permissions(ban_members=True)
@@ -293,7 +293,7 @@ class Moderation(commands.Cog, name="moderation"):
 #--------------------WARN---------------------------------#
     @commands.hybrid_command(
         name="warn",
-        description="Adds a warning to a member.",
+        description="Adds warn to a user.",
     )
     @checks.not_blacklisted()
     @checks.is_moderator()
@@ -327,7 +327,7 @@ class Moderation(commands.Cog, name="moderation"):
             
     @commands.hybrid_command(
         name="removewarn",
-        description="Removes warning from a member.",
+        description="Removes warn from user.",
     )
     @checks.not_blacklisted()
     @checks.is_moderator()
@@ -357,7 +357,7 @@ class Moderation(commands.Cog, name="moderation"):
 #-------------------------LIST WARNS-------------------------#
     @commands.hybrid_command(
         name="warns",
-        description="Shows the warnings of a member.",
+        description="Shows the warnings of a user.",
     )
     @checks.not_blacklisted()
     @checks.is_moderator()
@@ -467,7 +467,7 @@ class Moderation(commands.Cog, name="moderation"):
     #-------------------------UNMUTE COMMAND-------------------------#
     @commands.hybrid_command(
         name="unmute",
-        description="Unmutes a user by removing the jailed role."
+        description="Removes the jailed role."
     )
     @checks.not_blacklisted()
     @commands.bot_has_permissions(manage_roles=True)
@@ -539,7 +539,7 @@ class Moderation(commands.Cog, name="moderation"):
 #-------------------------PURGE------------------------------#
     @commands.hybrid_command(
         name="purge",
-        description="Delete a number of messages.",
+        description="Delete a bunch of messages.",
     )
     @checks.not_blacklisted()
     @commands.has_guild_permissions(manage_messages = True)
