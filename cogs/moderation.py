@@ -1,5 +1,7 @@
 
 #---------------------MODERATION COMMANDS---------------------#
+import json
+import asyncio
 
 import discord
 from discord import app_commands
@@ -12,6 +14,15 @@ from datetime import datetime
 from helpers import checks, database
 from helpers.colors import colors
 from helpers.emotes import emotes
+
+
+with open('config.json', 'r') as config_file:
+    config = json.load(config_file)
+
+NORI_ROLE_ID = int(config['nori_role_id'])
+MOD_ROLE_IDS = config['modRoles']
+JAILED_ROLE_ID = int(config['jailed_role_id'])
+AUTOMOD_CHANNEL_ID = int(config['automod_channel_id'])
 
 
 
@@ -27,6 +38,26 @@ class Moderation(commands.Cog, name="moderation"):
         else:
             print("Logging cog not found - Cannot log purged messages.")
 
+
+
+#-------------------------REACTION HANDLER-------------------------#
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction, user):
+        # ensure the reaction is in a valid voting message
+        if reaction.message.id in self.bot.active_ban_votes and not user.bot:
+            vote_data = self.bot.active_ban_votes[reaction.message.id]
+
+            # check if the user hasn't already voted
+            if user.id not in vote_data['votes']:
+                vote_data['votes'].append(user.id)
+
+                # if there are 2 votes (initiator + 1 more), ban
+                if len(vote_data['votes']) >= 2:
+                    context = await self.bot.get_context(reaction.message)
+                    await self.ban_user(context, vote_data['user_to_ban'], vote_data['reason'])
+
+                    # remove the vote tracking
+                    del self.bot.active_ban_votes[reaction.message.id]
 
 
 #--------------------KICK---------------------#
@@ -56,7 +87,7 @@ class Moderation(commands.Cog, name="moderation"):
             try:
                 embed = discord.Embed(
                     title="Kicked Member!",
-                    description=f"{user.mention} **({user})** was kicked by **{context.author}**!",
+                    description=f"**User: ** {user.name}{user.mention}\n**Responsible Mod: **{context.author}",
                     color=colors["blue"],
                     timestamp=datetime.now()
                 )
@@ -65,13 +96,9 @@ class Moderation(commands.Cog, name="moderation"):
                 embed.set_footer(text=f"User ID: {member.id}")
                 embed.add_field(name="Reason:", value=reason)
                 await context.send(embed=embed)
-                try:
-                    await member.send(
-                        f"You were kicked by **{context.author}** from **{context.guild.name}**!\nReason: {reason}"
-                    )
-                except:
-                    pass
+
                 await member.kick(reason=reason)
+
             except:
                 embed = discord.Embed(
                     description="An error occurred while trying to kick the user. Make sure my role is above the role of the user you want to kick.",
@@ -87,47 +114,50 @@ class Moderation(commands.Cog, name="moderation"):
 #---------------------------BAN-----------------------------#
     @commands.hybrid_command(
         name="ban",
-        description="Bans a user from the server.",
+        description="Bans a user from the server."
     )
     @checks.not_blacklisted()
-    @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
     @checks.is_moderator()
-    @app_commands.describe(
-        user="The user that should be banned.",
-        reason="The reason why the user should be banned.",
-    )
-    async def ban(
-        self, context: Context, user: discord.User, *, reason: str = "Not specified") -> None:
-        member = context.guild.get_member(user.id) or await context.guild.fetch_member(
-            user.id
-        )
-        try:
-            if member.guild_permissions.administrator:
-                embed = discord.Embed(
-                    description="User has administrator permissions.", color=colors["red"]
-                )
-                await context.send(embed=embed)
+    @commands.guild_only()
+    async def ban(self, context: commands.Context, user: discord.User, *, reason: str = "Not specified") -> None:
+        member = context.guild.get_member(user.id) or await context.guild.fetch_member(user.id)
+        
+        if member.guild_permissions.administrator:
+            embed = discord.Embed(
+                description="User has administrator permissions.", color=colors["red"]
+            )
+            await context.send(embed=embed)
+
+        else:
+            # if nori, start ban vote
+            nori_role = context.guild.get_role(NORI_ROLE_ID)
+            if nori_role in context.author.roles:
+                await self.start_ban_vote(context, user, reason)
+            # if other mod, ban regularly
             else:
-                embed = discord.Embed(
-                    title="Banned Member!",
-                    description=f"{user.mention} **({user})** was banned by **{context.author}**!",
-                    color=colors["blue"],
-                    timestamp=datetime.now()
-                )
-                embed.add_field(name="Reason:", value=reason)
-                avatar_url = member.avatar.url if member.avatar else None
-                embed.set_author(name=member.display_name, icon_url=avatar_url)
-                embed.set_footer(text=f"User ID: {member.id}")
-                await context.send(embed=embed)
-                try:
-                    await member.send(
-                        f"You were banned by **{context.author}** from **{context.guild.name}**!\nReason: {reason}"
-                    )
-                except:
-                    pass
-                await member.ban(reason=reason)
-        except:
+                await self.ban_user(context, user, reason)
+
+    #-------------------------BAN USER-------------------------#
+    async def ban_user(self, context, user_to_ban, reason):
+        try:
+            member = context.guild.get_member(user_to_ban.id) or await context.guild.fetch_member(user_to_ban.id)
+            embed = discord.Embed(
+                title="Banned Member!",
+                description=f"{user_to_ban} {user_to_ban.mention} was banned by **{context.author}**! {emotes['comfy']}",
+                color=colors["blue"],
+                timestamp=datetime.now()
+            )
+            embed.add_field(name="Reason:", value=reason)
+            avatar_url = member.avatar.url if member.avatar else None
+            embed.set_author(name=member.display_name, icon_url=avatar_url)
+            embed.set_footer(text=f"User ID: {member.id}")
+            await context.send(embed=embed)
+
+            # ban user
+            await member.ban(reason=reason)
+
+        except Exception as e:
             embed = discord.Embed(
                 title="Error!",
                 description=f"An error occurred while trying to ban the user. {emotes['think']} Make sure my role is above the role of the user you want to ban.",
@@ -136,46 +166,52 @@ class Moderation(commands.Cog, name="moderation"):
             )
             await context.send(embed=embed)
 
+    #-------------------------VOTE INITIALIZATION-------------------------#
+    async def start_ban_vote(self, context, user_to_ban, reason):
+        # create embed for voting
+        embed = discord.Embed(
+            title="Ban Vote",
+            description=f"A vote to ban {user_to_ban.mention} has started. At least 1 more vote is needed to confirm the ban. React with {emotes['this']} to vote.",
+            color=colors["blue"],
+            timestamp=datetime.now()
+        )
+        embed.add_field(name="Reason:", value=reason)
+        vote_message = await context.send(embed=embed)
 
-#-------------------------------BAN WITH ID------------------------------------#
-    @commands.hybrid_command(
-        name="idban",
-        description="Bans a user using their userID.",
-    )
-    @checks.not_blacklisted()
-    @commands.has_permissions(ban_members=True)
-    @commands.bot_has_permissions(ban_members=True)
-    @checks.is_moderator()
-    @app_commands.describe(
-        user_id="The user ID that should be banned.",
-        reason="The reason why the user should be banned.",
-    )
-    async def idban(
-        self, context: Context, user_id: str, *, reason: str = "Not specified") -> None:
-        try:
-            await self.bot.http.ban(user_id, context.guild.id, reason=reason)
-            user = self.bot.get_user(int(user_id)) or await self.bot.fetch_user(
-                int(user_id)
-            )
+        # bot adds reaction for mods to react
+        await vote_message.add_reaction(emotes['this']) 
+
+        # track votes
+        self.bot.active_ban_votes[vote_message.id] = {
+            'initiator': context.author.id,
+            'user_to_ban': user_to_ban,
+            'reason': reason,
+            'votes': [context.author.id],
+            'message': vote_message
+        }
+
+        # start a 24-hour ttimer
+        await self.handle_vote_timeout(vote_message.id)
+
+    #-------------------------VOTE TIMEOUT HANDLER-------------------------#
+    async def handle_vote_timeout(self, message_id):
+        await asyncio.sleep(86400)
+
+        # If 24 hours and no votes
+        if message_id in self.bot.active_ban_votes:
+            vote_data = self.bot.active_ban_votes[message_id]
+            message = vote_data['message']
+
             embed = discord.Embed(
-                title="Banned User!",
-                description=f"{user.mention} **({user})** was banned by **{context.author}**!",
-                color=colors["blue"],
-                timestamp=datetime.now()
-            )
-            avatar_url = user.avatar.url if user.avatar else None
-            embed.set_author(name=user.display_name, icon_url=avatar_url)
-            embed.set_footer(text=f"User ID: {user.id}")
-            embed.add_field(name="Reason:", value=reason)
-            await context.send(embed=embed)
-        except Exception as e:
-            embed = discord.Embed(
-                description=f"An error occurred while trying to ban the user. {emotes['think']} Make sure userID actually exists.",
+                title="Ban Vote Expired",
+                description=f"The vote to ban {vote_data['user_to_ban'].mention} has expired due to insufficient votes. {emotes['ded']}",
                 color=colors["red"],
                 timestamp=datetime.now()
             )
-            await context.send(embed=embed)
+            await message.channel.send(embed=embed)
 
+            # remove the vote from active votes
+            del self.bot.active_ban_votes[message_id]
 
 
 
@@ -276,7 +312,7 @@ class Moderation(commands.Cog, name="moderation"):
         )
         embed = discord.Embed(
             title="Warned Member!",
-            description=f"{user.mention} **({user})** was warned by **{context.author}**!\nTotal warns for this user: {total}",
+            description=f"{user.mention} **({user})** was warned by **{context.author}**!\nTotal warns for this user: {total} {emotes['comfy']}",
             color=colors["blue"],
             timestamp=datetime.now()
         )
@@ -285,14 +321,6 @@ class Moderation(commands.Cog, name="moderation"):
         embed.set_footer(text=f"User ID: {member.id}")
         embed.add_field(name="Reason:", value=reason)
         await context.send(embed=embed)
-        try:
-            await member.send(
-                f"You were warned by **{context.author}** in **{context.guild.name}**!\nReason: {reason}"
-            )
-        except:
-            await context.send(
-                f"{member.mention}, you were warned by **{context.author}**!\nReason: {reason}"
-            )
 
 
 #-----------------------REMOVE WARN-----------------------#
@@ -316,7 +344,7 @@ class Moderation(commands.Cog, name="moderation"):
         total = await database.remove_warn(warn_id, user.id, context.guild.id)
         embed = discord.Embed(
             title="Removed Warn!",
-            description=f"I removed the warning **#{warn_id}** from **{member}**!\nTotal warns for this user: {total}",
+            description=f"I removed the warning **#{warn_id}** from **{member}**!\nTotal warns for this user: {total} {emotes['comfy']}",
             color=colors["blue"],
             timestamp=datetime.now()
         )
@@ -328,11 +356,10 @@ class Moderation(commands.Cog, name="moderation"):
 
 #-------------------------LIST WARNS-------------------------#
     @commands.hybrid_command(
-        name="listwarns",
+        name="warns",
         description="Shows the warnings of a member.",
     )
     @checks.not_blacklisted()
-    @commands.has_guild_permissions(manage_messages = True)
     @checks.is_moderator()
     
     @app_commands.describe(user="The user you want to get the warnings of.")
@@ -347,12 +374,164 @@ class Moderation(commands.Cog, name="moderation"):
             description = f"This user has no warnings. {emotes['think']}"
         else:
             for warning in warnings_list:
-                description += f"• Warned by <@{warning[2]}>: **{warning[3]}** (<t:{warning[4]}>) - Warn ID #{warning[5]}\n"
+                description += f"• Warn ID #{warning[5]} - Warned by <@{warning[2]}>: **{warning[3]}** (<t:{warning[4]}>)\n"
         embed.description = description
         avatar_url = user.avatar.url if user.avatar else None
         embed.set_author(name=user.display_name, icon_url=avatar_url)
         embed.set_footer(text=f"User ID: {user.id}")
         await context.send(embed=embed)
+
+
+
+#-------------------------MUTE COMMAND-------------------------#
+    @commands.hybrid_command(
+        name="mute",
+        description="Mutes a user with jailed role."
+    )
+    @checks.not_blacklisted()
+    @commands.bot_has_permissions(manage_roles=True)
+    @checks.is_moderator()
+    @app_commands.describe(
+        user="The user to be muted.",
+        duration="Duration of the mute ('10min' for 10 minutes, '1hr' for 1 hour)."
+    )
+    async def mute(self, context: Context, user: discord.Member, duration: str) -> None:
+        # Parse duration into seconds
+        mute_duration_seconds = self.parse_duration(duration)
+        if mute_duration_seconds is None:
+            embed = discord.Embed(
+                description="Invalid duration format. Please use formats like `10min`, `6hr`, or `2day`.",
+                color=colors["red"]
+            )
+            await context.send(embed=embed)
+            return
+        
+        # Add the jailed role to the user
+        jailed_role = context.guild.get_role(JAILED_ROLE_ID)
+        if jailed_role in user.roles:
+            embed = discord.Embed(
+                description=f"{user.mention} is already muted.",
+                color=colors["red"]
+            )
+            await context.send(embed=embed)
+            return
+
+        await user.add_roles(jailed_role)
+
+        # send confirmation message in the current channel
+        embed = discord.Embed(
+            description=f"**Offender:** {user.mention}\n**Duration:** {duration}\n**Responsible Moderator:** {context.author.mention}",
+            color=colors["gold"],
+            timestamp=datetime.now()
+        )
+        await context.send(embed=embed)
+
+        # Log mute in the automod channel
+        automod_channel = self.bot.get_channel(AUTOMOD_CHANNEL_ID)
+        if automod_channel:
+            log_embed = discord.Embed(
+                title="User Muted",
+                description=f"**Offender:** {user.mention}\n**Duration:** {duration}\n**Responsible Moderator:** {context.author.mention}",
+                color=colors["gold"],
+                timestamp=datetime.now()
+            )
+            log_embed.set_footer(text=f"User ID: {user.id}")
+            await automod_channel.send(embed=log_embed)
+
+        # schedule the automatic unmute
+        self.mute_timers[user.id] = self.bot.loop.create_task(self.unmute_after(context, user, mute_duration_seconds))
+
+    #-------------------UNMUTE AFTER TIMER--------------------#
+    async def unmute_after(self, context: Context, user: discord.Member, duration: int):
+        await asyncio.sleep(duration)
+
+        # check if the user is still muted (i.e., has the jailed role)
+        jailed_role = context.guild.get_role(JAILED_ROLE_ID)
+        if jailed_role in user.roles:
+            await user.remove_roles(jailed_role)
+
+            # Log automatic unmute in the automod channel
+            automod_channel = self.bot.get_channel(AUTOMOD_CHANNEL_ID)
+            if automod_channel:
+                embed = discord.Embed(
+                    title="User Automatically Unmuted",
+                    description=f"{user.mention} has been automatically unmuted.",
+                    color=colors["blue"],
+                    timestamp=datetime.now()
+                )
+                embed.set_footer(text=f"User ID: {user.id}")
+                await automod_channel.send(embed=embed)
+
+
+
+    #-------------------------UNMUTE COMMAND-------------------------#
+    @commands.hybrid_command(
+        name="unmute",
+        description="Unmutes a user by removing the jailed role."
+    )
+    @checks.not_blacklisted()
+    @commands.bot_has_permissions(manage_roles=True)
+    @checks.is_moderator()
+    @app_commands.describe(
+        user="The user to be unmuted."
+    )
+    async def unmute(self, context: Context, user: discord.Member) -> None:
+        # Remove the jailed role from the user
+        jailed_role = context.guild.get_role(JAILED_ROLE_ID)
+        if jailed_role not in user.roles:
+            embed = discord.Embed(
+                description=f"{user.mention} is not muted.",
+                color=colors["red"]
+            )
+            await context.send(embed=embed)
+            return
+
+        await user.remove_roles(jailed_role)
+
+        # Send confirmation message
+        embed = discord.Embed(
+            description=f"{user.mention} has been unmuted by {context.author.mention}.",
+            color=colors["blue"],
+            timestamp=datetime.now()
+        )
+        await context.send(embed=embed)
+
+        # Log unmute in the automod channel
+        automod_channel = self.bot.get_channel(AUTOMOD_CHANNEL_ID)
+        if automod_channel:
+            log_embed = discord.Embed(
+                title="User Unmuted",
+                description=f"{user.mention} has been manually unmuted by {context.author.mention}.",
+                color=colors["blue"],
+                timestamp=datetime.now()
+            )
+            log_embed.set_footer(text=f"User ID: {user.id}")
+            await automod_channel.send(embed=log_embed)
+
+        # Cancel any existing mute timer
+        if user.id in self.mute_timers:
+            self.mute_timers[user.id].cancel()
+            del self.mute_timers[user.id]
+
+
+    def parse_duration(self, duration: str):
+            # convert duration string to seconds
+            time_units = {
+                'm': 60,
+                'min': 60,
+                'h': 3600,
+                'hr': 3600,
+                'd': 86400,
+                'day': 86400
+            }
+            if duration[-1] in time_units:
+                try:
+                    time_amount = int(duration[:-1])
+                    return time_amount * time_units[duration[-1]]
+                except ValueError:
+                    return None
+            return None
+
 
 
 
@@ -382,43 +561,6 @@ class Moderation(commands.Cog, name="moderation"):
         )
         await context.channel.send(embed=embed, delete_after=3)
 
-
-#--------------------NICKNAME--------------------#
-    @commands.hybrid_command(
-        name="nick",
-        description="Change the nickname of a member",
-    )
-    @checks.not_blacklisted()
-    @commands.has_permissions(manage_nicknames = True)
-    @commands.bot_has_permissions(manage_nicknames = True)
-    @checks.is_moderator()
-    @app_commands.describe(
-        user="The user that should have a new nickname.",
-        nickname="The new nickname that should be set.",
-    )
-    async def nick(
-        self, context: Context, user: discord.User, *, nickname: str = None) -> None:
-        member = context.guild.get_member(user.id) or await context.guild.fetch_member(
-            user.id
-        )
-        try:
-            await member.edit(nick=nickname)
-            embed = discord.Embed(
-                title="Nickname Changed!",
-                description=f"**{user}'s** new nickname is **{nickname}**! {emotes['comfy']}",
-                color=colors["blue"],
-                timestamp=datetime.now()
-            )
-            avatar_url = member.avatar.url if member.avatar else None
-            embed.set_author(name=member.display_name, icon_url=avatar_url)
-            embed.set_footer(text=f"User ID: {member.id}")
-            await context.send(embed=embed)
-        except:
-            embed = discord.Embed(
-                description=f"An error occurred while trying to change the nickname of the user. {emotes['think']} Make sure my role is above the role of the user you want to change the nickname.",
-                color=colors["red"],
-            )
-            await context.send(embed=embed)
 
 
 async def setup(bot):
