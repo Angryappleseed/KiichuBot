@@ -30,6 +30,7 @@ AUTOMOD_CHANNEL_ID = int(config['automod_channel_id'])
 class Moderation(commands.Cog, name="moderation"):
     def __init__(self, bot):
         self.bot = bot
+        self.mute_timers = {}
 
     async def log_purge(self, channel, moderator, messages):
         logging_cog = self.bot.get_cog('logging')
@@ -43,21 +44,24 @@ class Moderation(commands.Cog, name="moderation"):
 #-------------------------REACTION HANDLER-------------------------#
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
-        # ensure the reaction is in a valid voting message
-        if reaction.message.id in self.bot.active_ban_votes and not user.bot:
+        if hasattr(self.bot, 'active_ban_votes') and reaction.message.id in self.bot.active_ban_votes and not user.bot:
             vote_data = self.bot.active_ban_votes[reaction.message.id]
 
-            # check if the user hasn't already voted
+            # Check if the user hasn't already voted
             if user.id not in vote_data['votes']:
                 vote_data['votes'].append(user.id)
 
-                # if there are 2 votes (initiator + 1 more), ban
+                # If there are 2 votes (initiator + 1 more), proceed with banning the user
                 if len(vote_data['votes']) >= 2:
                     context = await self.bot.get_context(reaction.message)
                     await self.ban_user(context, vote_data['user_to_ban'], vote_data['reason'])
 
-                    # remove the vote tracking
+                    # Remove the vote tracking once the ban is completed
                     del self.bot.active_ban_votes[reaction.message.id]
+
+        # ignore other bot messages
+        else:
+            pass
 
 
 #--------------------KICK---------------------#
@@ -87,12 +91,10 @@ class Moderation(commands.Cog, name="moderation"):
             try:
                 embed = discord.Embed(
                     title="Kicked Member!",
-                    description=f"**User: ** {user.name}{user.mention}\n**Responsible Mod: **{context.author}",
+                    description=f"**User: **{user.name}{user.mention}\n**Responsible Mod: **{context.author}",
                     color=colors["blue"],
                     timestamp=datetime.now()
                 )
-                avatar_url = member.avatar.url if member.avatar else None
-                embed.set_author(name=member.display_name, icon_url=avatar_url)
                 embed.set_footer(text=f"User ID: {member.id}")
                 embed.add_field(name="Reason:", value=reason)
                 await context.send(embed=embed)
@@ -144,13 +146,11 @@ class Moderation(commands.Cog, name="moderation"):
             member = context.guild.get_member(user_to_ban.id) or await context.guild.fetch_member(user_to_ban.id)
             embed = discord.Embed(
                 title="Banned Member!",
-                description=f"{user_to_ban} {user_to_ban.mention} was banned by **{context.author}**! {emotes['comfy']}",
+                description=f"**Offender: **{user_to_ban}{user_to_ban.mention}\n**Responsible Moderator: **{context.author} {emotes['comfy']}",
                 color=colors["blue"],
                 timestamp=datetime.now()
             )
             embed.add_field(name="Reason:", value=reason)
-            avatar_url = member.avatar.url if member.avatar else None
-            embed.set_author(name=member.display_name, icon_url=avatar_url)
             embed.set_footer(text=f"User ID: {member.id}")
             await context.send(embed=embed)
 
@@ -160,7 +160,7 @@ class Moderation(commands.Cog, name="moderation"):
         except Exception as e:
             embed = discord.Embed(
                 title="Error!",
-                description=f"An error occurred while trying to ban the user. {emotes['think']} Make sure my role is above the role of the user you want to ban.",
+                description=f"An error occurred while trying to ban the user. {emotes['think']}",
                 color=colors["red"],
                 timestamp=datetime.now()
             )
@@ -260,12 +260,10 @@ class Moderation(commands.Cog, name="moderation"):
 
             embed = discord.Embed(
                 title="Unbanned User!",
-                description=f"{user.mention} **({user})** has been unbanned by **{context.author}**!",
+                description=f"**User: **{user}{user.mention}\n**Responsible Moderator: ** {context.author}",
                 color=colors["blue"],
                 timestamp=datetime.now()
             )
-            avatar_url = user.avatar.url if user.avatar else None
-            embed.set_author(name=user.display_name, icon_url=avatar_url)
             embed.set_footer(text=f"User ID: {user.id}")
             embed.add_field(name="Reason:", value=reason)
             await context.send(embed=embed)
@@ -312,15 +310,20 @@ class Moderation(commands.Cog, name="moderation"):
         )
         embed = discord.Embed(
             title="Warned Member!",
-            description=f"{user.mention} **({user})** was warned by **{context.author}**!\nTotal warns for this user: {total} {emotes['comfy']}",
+            description=f"**Offender: **{user}{user.mention}\n**Responsible Moderator: **{context.author}!\nTotal warns for this user: {total} {emotes['comfy']}",
             color=colors["blue"],
             timestamp=datetime.now()
         )
-        avatar_url = member.avatar.url if member.avatar else None
-        embed.set_author(name=member.display_name, icon_url=avatar_url)
         embed.set_footer(text=f"User ID: {member.id}")
         embed.add_field(name="Reason:", value=reason)
         await context.send(embed=embed)
+
+        try:
+            await member.send(
+                f"You were warned in **{context.guild.name}**!\nReason: {reason}"
+            )
+        except:
+            pass
 
 
 #-----------------------REMOVE WARN-----------------------#
@@ -344,12 +347,10 @@ class Moderation(commands.Cog, name="moderation"):
         total = await database.remove_warn(warn_id, user.id, context.guild.id)
         embed = discord.Embed(
             title="Removed Warn!",
-            description=f"I removed the warning **#{warn_id}** from **{member}**!\nTotal warns for this user: {total} {emotes['comfy']}",
+            description=f"Removed warning **#{warn_id}** from **{member}**!\nTotal warns for this user: {total} {emotes['comfy']}",
             color=colors["blue"],
             timestamp=datetime.now()
         )
-        avatar_url = member.avatar.url if member.avatar else None
-        embed.set_author(name=member.display_name, icon_url=avatar_url)
         embed.set_footer(text=f"User ID: {member.id}")
         await context.send(embed=embed)
 
@@ -376,8 +377,6 @@ class Moderation(commands.Cog, name="moderation"):
             for warning in warnings_list:
                 description += f"• Warn ID #{warning[5]} - Warned by <@{warning[2]}>: **{warning[3]}** (<t:{warning[4]}>)\n"
         embed.description = description
-        avatar_url = user.avatar.url if user.avatar else None
-        embed.set_author(name=user.display_name, icon_url=avatar_url)
         embed.set_footer(text=f"User ID: {user.id}")
         await context.send(embed=embed)
 
@@ -501,7 +500,7 @@ class Moderation(commands.Cog, name="moderation"):
         if automod_channel:
             log_embed = discord.Embed(
                 title="User Unmuted",
-                description=f"{user.mention} has been manually unmuted by {context.author.mention}.",
+                description=f"**Offender:** {user.mention}\n**Responsible Moderator: **{context.author.mention}.",
                 color=colors["blue"],
                 timestamp=datetime.now()
             )
@@ -515,22 +514,25 @@ class Moderation(commands.Cog, name="moderation"):
 
 
     def parse_duration(self, duration: str):
-            # convert duration string to seconds
-            time_units = {
-                'm': 60,
-                'min': 60,
-                'h': 3600,
-                'hr': 3600,
-                'd': 86400,
-                'day': 86400
-            }
-            if duration[-1] in time_units:
+        # Define time units and full word alternatives
+        time_units = {
+            'm': 60,
+            'min': 60,
+            'h': 3600,
+            'hr': 3600,
+            'd': 86400,
+            'day': 86400
+        }
+
+        # Check if the duration ends with a known unit or word
+        for unit, seconds in time_units.items():
+            if duration.endswith(unit):
                 try:
-                    time_amount = int(duration[:-1])
-                    return time_amount * time_units[duration[-1]]
+                    time_amount = int(duration.rstrip(unit))
+                    return time_amount * seconds
                 except ValueError:
                     return None
-            return None
+        return None
 
 
 
