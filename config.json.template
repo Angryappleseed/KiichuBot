@@ -17,6 +17,8 @@ Dont forget to remove all of these instructions and save this file as 'config.js
   "god_role_id": "1123491940722294784",
   "failed_verify_role_id": "1261944418429304972",
   "jailed_role_id": "786476608445874216",
+  "automod_channel_id": "906624474403717141",
+  "vclogs_channel_id": "1281604578701349005",
   "status_channel_id": "Replace with the channel id where you want the bot to send startup/shutdown messages in your server",
   "genchat_channel_id": "Replace with the channel id of gen chat",
   "bot_guild_id": "Replace with your bot's primary guild id here",
