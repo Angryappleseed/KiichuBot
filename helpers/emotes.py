@@ -10,6 +10,7 @@
 # {emotes['yorumot']}
 emotes = {
     "wave": "<:KiiHey:910137090711371816>",
+    "this": "<:KiiThis:966759999537827850>",
     "cry": "<:KiichanSad:820629800221671455>",
     "ded": "<:KiiDed:991726856661377145>",
     "think": "<a:KiiLoad:1027879055019741184>",
