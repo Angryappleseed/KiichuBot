@@ -4,6 +4,8 @@ import re
 import os
 import aiosqlite
 
+from typing import List
+
 from datetime import datetime, timezone
 
 import discord
@@ -41,6 +43,9 @@ GOD_ROLE_ID = int(config['god_role_id'])
 FAILED_VERIFY_ROLE_ID = int(config['failed_verify_role_id'])
 MOD_ROLE_IDS = config['modRoles']
 GAME_ROOM_2 = 999729521219616840
+VCLOGS_CHANNEL_ID = int(config['vclogs_channel_id'])
+# Backrooms chat and Jabol4Pan
+EXCLUDED_VOICE_CHANNELS = [786890857499852830, 1222214029829738538]
 
 
 
@@ -332,6 +337,51 @@ class Tasks(commands.Cog, name="tasks"):
             embed.add_field(name=f"ID: {msg[0]}", value=f"Channel: <#{msg[1]}> - Interval: {formatted_interval}\nMessage: {msg[2]}", inline=False)
         await ctx.send(embed=embed)
 
+
+
+
+#--------------------VOICE CHANNEL LOGGING----------------------#
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        vclogs_channel = self.bot.get_channel(VCLOGS_CHANNEL_ID)
+
+        # exclude backrooms and jabol4pan from logging
+        if (before.channel and before.channel.id in EXCLUDED_VOICE_CHANNELS) or (after.channel and after.channel.id in EXCLUDED_VOICE_CHANNELS):
+            return
+
+        # User joins a voice channel
+        if before.channel is None and after.channel is not None:
+            embed = discord.Embed(
+                title="User Joined Voice Channel",
+                description=f"{member}{member.mention} joined **{after.channel.name}**",
+                color=colors["blue"],
+                timestamp=datetime.now()
+            )
+            embed.set_footer(text=f"User ID: {member.id}")
+            await vclogs_channel.send(embed=embed)
+
+        # User leaves a voice channel
+        elif before.channel is not None and after.channel is None:
+            embed = discord.Embed(
+                title="User Left Voice Channel",
+                description=f"{member}{member.mention} left **{before.channel.name}**",
+                color=colors["red"],
+                timestamp=datetime.now()
+            )
+            embed.set_footer(text=f"User ID: {member.id}")
+            await vclogs_channel.send(embed=embed)
+
+        # User switches voice channels
+        elif before.channel is not None and after.channel is not None and before.channel.id != after.channel.id:
+            embed = discord.Embed(
+                title="User Switched Voice Channel",
+                description=f"{member}{member.mention} switched from **{before.channel.name}** to **{after.channel.name}**",
+                color=colors["gold"],
+                timestamp=datetime.now()
+            )
+            embed.set_footer(text=f"User ID: {member.id}")
+            await vclogs_channel.send(embed=embed)
 
 
 async def setup(bot):
