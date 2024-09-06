@@ -107,6 +107,7 @@ class General(commands.Cog, name="general"):
         self.bot = bot
         self.cog_descriptions = {
             'general': "Common commands for regular usage.",
+            'moderation': "Commands for managing members.",
             'tasks': "Commands for background tasks.",
             'owner': "Commands that are reserved for the bot owner(s)."
         }
@@ -121,7 +122,7 @@ class General(commands.Cog, name="general"):
     @checks.not_blacklisted()
     @checks.is_moderator()
     async def help(self, ctx):
-        included_cogs = ["general", "tasks", "owner"]
+        included_cogs = ["general", "moderation", "tasks", "owner"]
         view = HelpView(ctx, included_cogs)
         embed = view.get_homescreen_embed()
         await ctx.send(embed=embed, view=view)
