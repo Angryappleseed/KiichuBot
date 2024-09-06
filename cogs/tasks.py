@@ -34,7 +34,7 @@ class Tasks(commands.Cog, name="tasks"):
         self.min_account_age_days = 7
         self.log_channel_id = 906624474403717141
         self.new_account_detection_enabled = True
-        self.auto_mute_enabled = True
+        self.auto_mute_enabled = False
 
 
 #---------Role update listener--------------------#
@@ -157,6 +157,7 @@ class Tasks(commands.Cog, name="tasks"):
     @commands.guild_only()
     @checks.not_blacklisted()
     @checks.is_moderator()
+    @commands.has_permissions(manage_guild=True)
     async def togglealtdetection(self, ctx: commands.Context):
         self.new_account_detection_enabled = not self.new_account_detection_enabled
         status = "enabled" if self.new_account_detection_enabled else "disabled"
@@ -176,6 +177,7 @@ class Tasks(commands.Cog, name="tasks"):
     @commands.guild_only()
     @checks.not_blacklisted()
     @checks.is_moderator()
+    @commands.has_permissions(manage_guild=True)
     async def toggleautomute(self, ctx: commands.Context):
         self.auto_mute_enabled = not self.auto_mute_enabled
         status = "enabled" if self.auto_mute_enabled else "disabled"

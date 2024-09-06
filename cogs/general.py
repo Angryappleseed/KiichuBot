@@ -47,7 +47,7 @@ class HelpMenuSelect(discord.ui.Select):
     def __init__(self, cogs):
         options = [discord.SelectOption(label='Home', description='Show the homescreen')]
         options += [discord.SelectOption(label=cog, description=f"Lists {cog} commands") for cog in cogs]
-        super().__init__(placeholder='Select a cog', min_values=1, max_values=1, options=options)
+        super().__init__(placeholder='Select a module', min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.view.ctx.author.id:
@@ -268,6 +268,7 @@ class General(commands.Cog, name="general"):
         description="Schedules a new automated message."
     )
     @checks.is_moderator()
+    @commands.has_permissions(manage_guild=True)
     @app_commands.describe(
         channel="The target channel for the messages.",
         interval="The time between repeats (s, min, hr).",
@@ -291,6 +292,7 @@ class General(commands.Cog, name="general"):
         description="Removes a specified automated message."
     )
     @checks.is_moderator()
+    @commands.has_permissions(manage_guild=True)
     async def remove_automated_message(self, ctx: commands.Context, message_id: int):
         await remove_automated_message(message_id)
         embed = discord.Embed(
@@ -307,6 +309,7 @@ class General(commands.Cog, name="general"):
         description="Lists all scheduled automated messages."
     )
     @checks.is_moderator()
+    @commands.has_permissions(manage_guild=True)
     async def list_automated_messages(self, ctx: commands.Context):
         messages = await get_automated_messages()
         embed = discord.Embed(title="Automated Messages", color=colors["blue"])
