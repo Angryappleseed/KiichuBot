@@ -52,6 +52,7 @@ class KiichuBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.log_channel = {} 
+        self.active_ban_votes = {}
 
 # -------------------GET SERVER PREFIXES---------------------------#
     
