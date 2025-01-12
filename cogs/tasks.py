@@ -3,6 +3,7 @@ import json
 import re
 import os
 import aiosqlite
+import random
 
 from typing import List
 
@@ -94,6 +95,16 @@ class Tasks(commands.Cog, name="tasks"):
         self.log_channel_id = 906624474403717141
         self.new_account_detection_enabled = True
         self.auto_mute_enabled = False
+        self.auto_image_message_enabled = False
+        self.auto_image_message_task = None
+        self.auto_image_message_interval = 3600  # Default interval: 1 hr
+        self.image_message_channel_id = None 
+
+        # Hardcoded list of image-message combos
+        self.image_message_combos = [
+            {"image": "../images/KiiAdvancedgg.png", "message": "Go get yourself some  banger flavors at https://advanced.gg! Don't forget to use code KIICHAN for a discount!"},
+            {"image": "../images/KiiTwitch.png", "message": "Go check out Kiichan's stream! Henry is giving away 50 KiiCoins:tm:!"},
+        ]
 
 
 
@@ -382,6 +393,81 @@ class Tasks(commands.Cog, name="tasks"):
             )
             embed.set_footer(text=f"User ID: {member.id}")
             await vclogs_channel.send(embed=embed)
+
+
+
+#-------------------------TOGGLE AUTO IMAGE MESSAGE-------------------------#
+    @commands.hybrid_command(
+        name="toggleads",
+        description="Toggles the automated ads."
+    )
+    @checks.is_moderator()
+    @commands.has_permissions(manage_guild=True)
+    @app_commands.describe(
+        channel="The channel where the messages will be sent.",
+        interval="Time interval for sending the image-message combo (e.g., '10min', '1hr')."
+    )
+    async def toggle_image_cycle(self, ctx: commands.Context, channel: discord.TextChannel, interval: str):
+        # Parse the interval
+        try:
+            interval_seconds = parse_time_interval(interval)
+        except ValueError:
+            embed = discord.Embed(
+                description="Invalid interval format. Use formats like `10min`, `1hr`, or `2day`.",
+                color=colors["red"]
+            )
+            await ctx.send(embed=embed)
+            return
+
+        # Toggle the feature
+        self.auto_image_message_enabled = not self.auto_image_message_enabled
+        if self.auto_image_message_enabled:
+            self.auto_image_message_interval = interval_seconds
+            self.image_message_channel_id = channel.id
+
+            # Start the background task
+            if not self.auto_image_message_task:
+                self.auto_image_message_task = self.bot.loop.create_task(self.image_message_cycle())
+            
+            embed = discord.Embed(
+                description=f"Auto image-message feature enabled in {channel.mention}. Interval: {interval}.",
+                color=colors["blue"]
+            )
+        else:
+            if self.auto_image_message_task:
+                self.auto_image_message_task.cancel()
+                self.auto_image_message_task = None
+                self.image_message_channel_id = None
+            
+            embed = discord.Embed(
+                description="Auto image-message feature disabled.",
+                color=colors["red"]
+            )
+
+        await ctx.send(embed=embed)
+
+    #-------------------------IMAGE MESSAGE CYCLE-------------------------#
+    async def image_message_cycle(self):
+        while self.auto_image_message_enabled:
+            # Get the target channel
+            if not self.image_message_channel_id:
+                break
+            channel = self.bot.get_channel(self.image_message_channel_id)
+            if not channel:
+                break
+
+            # Choose a random image-message combo
+            combo = random.choice(self.image_message_combos)
+            try:
+                # Send the message with the image
+                file = discord.File(combo["image"], filename=combo["image"].split("/")[-1])
+                await channel.send(content=combo["message"], file=file)
+            except Exception as e:
+                print(f"Failed to send automated image-message: {e}")
+
+            # Wait for the next interval
+            await asyncio.sleep(self.auto_image_message_interval)
+
 
 
 async def setup(bot):
