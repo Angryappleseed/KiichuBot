@@ -100,10 +100,11 @@ class Tasks(commands.Cog, name="tasks"):
         self.auto_image_message_interval = 3600  # Default interval: 1 hr
         self.image_message_channel_id = None 
 
+        self.images_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images")
         # Hardcoded list of image-message combos
         self.image_message_combos = [
-            {"image": "../images/KiiAdvancedgg.png", "message": "Go get yourself some  banger flavors at https://advanced.gg! Don't forget to use code KIICHAN for a discount!"},
-            {"image": "../images/KiiTwitch.png", "message": "Go check out Kiichan's stream! Henry is giving away 50 KiiCoins:tm:!"},
+            {"image": os.path.join(self.images_dir, "KiiAdvancedgg.png"), "message": "Go get yourself some  banger flavors at https://advanced.gg! Don't forget to use code KIICHAN for a discount!"},
+            {"image": os.path.join(self.images_dir, "KiiTwitch.png"), "message": "Go check out Kiichan's stream! Henry is giving away 50 KiiCoins:tm:!"},
         ]
 
 
