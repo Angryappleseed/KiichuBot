@@ -4,6 +4,7 @@ import aiohttp
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import io
 
+import textwrap
 
 class Welcome(commands.Cog):
     def __init__(self, bot):
@@ -71,12 +72,30 @@ class Welcome(commands.Cog):
                 template.save(output_buffer, 'PNG')
                 output_buffer.seek(0)
 
-                # Send the welcome message with the image
+
+
                 file = discord.File(fp=output_buffer, filename="welcome_image.png")
                 channel = self.bot.get_channel(welcome_channel_id)
 
+
+
                 if channel:
-                    await channel.send(f"Welcome to the server, {member.mention}!", file=file)
+                    welcome_message = (
+                        f"Hi konkon, {member.mention}, Welcome to Kiichan's Fox Den!\n"
+                        "Please read the <#912401777356312576> for full access to the server!\n"
+                    )
+                    await channel.send(welcome_message, file=file)
+
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, member: discord.Member):
+        welcome_channel_id = 751367236966547457
+        channel = self.bot.get_channel(welcome_channel_id)
+
+        if channel:
+            goodbye_message = f"**{member.name}** has been consumed. <:Kiichomp:789878586907557928>"
+            await channel.send(goodbye_message)
+
 
 async def setup(bot):
     await bot.add_cog(Welcome(bot))
