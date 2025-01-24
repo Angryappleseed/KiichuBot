@@ -6,4 +6,5 @@ async-timeout
 PyNaCl
 pillow
 google-api-python-client
+pillow
 git+https://github.com/Rapptz/discord-ext-menus
