@@ -106,6 +106,7 @@ class Tasks(commands.Cog, name="tasks"):
             {"image": os.path.join(self.images_dir, "KiiAdvancedgg.png"), "message": "Go get yourself some  banger flavors at https://advanced.gg! Don't forget to use code KIICHAN for a discount!"},
             {"image": os.path.join(self.images_dir, "KiiTwitch.png"), "message": "Go check out Kiichan's stream! Henry is giving away 50 KiiCoins:tm:!"},
         ]
+        self.TICKET_TOOL_BOT_ID = 557628352828014614
 
 
 
@@ -136,6 +137,24 @@ class Tasks(commands.Cog, name="tasks"):
 
 
 
+#---------Rename Tickettool channels-----------#
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+
+        # Check if the message is from TicketTool and in a ticket channel
+        if message.author.id == self.TICKET_TOOL_BOT_ID and "ticket-" in message.channel.name:
+
+            # Check if there's a mention in the message
+            if message.mentions:
+                ticket_creator = message.mentions[0]  # Get the mentioned user
+                new_channel_name = f"{ticket_creator.name.lower()}"
+
+                # Rename the channel
+                try:
+                    await message.channel.edit(name=new_channel_name)
+                    print(f"Renamed channel to {new_channel_name}")
+                except Exception as e:
+                    print(f"Failed to rename channel: {e}")
 
 
 
