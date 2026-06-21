@@ -214,11 +214,12 @@ class Tasks(commands.Cog, name="tasks"):
         self.TICKET_TOOL_BOT_ID = 557628352828014614
 
         self.goodbye_messages = [
-            "**{mention}** (**{name}**) has been consumed. <:Kiichomp:789878586907557928>",
-            "**{mention}** has taken their leave... **{name}** will be missed. <:KiiCrying:1334189979395424348>",
-            "The server grows ever darker... **{mention}** has fallen... The void has consumed **{name}**. <:KiiNotLikeThis:812243537058856960>",
-            "Good luck on your ventures **{mention}**! Surely **{name}** didn't find a new oshi to replace Kiichan. <:Kiien:1192124110881439844>",
-            "**{mention}** has left the fox den. Please take care of yourself **{name}**. <a:KiiNodders:1015000796355641424>",
+            "***{name}** has been consumed. <:Kiichomp:789878586907557928>",
+            "**{name}** has taken their leave... They will be missed. <:KiiCrying:1334189979395424348>",
+            "The void has consumed **{name}**. <:KiiNotLikeThis:812243537058856960>",
+            "Good luck on your ventures **{name}**! Surely they didn't find a new oshi to replace Kiichan. <:Kiien:1192124110881439844>",
+            "**{name}** has left the fox den. <a:KiiNodders:1015000796355641424>",
+            "**{name}** will be remembered... <a:KiiNodders:1015000796355641424>",
         ]
 
 #----------- whitelist helpers----------#
