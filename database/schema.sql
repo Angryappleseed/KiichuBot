@@ -34,26 +34,6 @@ CREATE TABLE IF NOT EXISTS `warns` (
 );
 
 
-CREATE TABLE IF NOT EXISTS `onboarding` (
-  `guild_id` varchar(20) NOT NULL,
-  `welcome_message` text,
-  `goodbye_message` text,
-  `welcome_channel_id` varchar(20),
-  `auto_assign_roles` text,
-  `welcome_enabled` BOOLEAN DEFAULT TRUE,
-  `goodbye_enabled` BOOLEAN DEFAULT TRUE,
-  `sticky_roles_enabled` BOOLEAN DEFAULT 0,
-  PRIMARY KEY (`guild_id`)
-);
-
-
-CREATE TABLE IF NOT EXISTS `sticky_roles` (
-  `user_id` varchar(20) NOT NULL,
-  `guild_id` varchar(20) NOT NULL,
-  `role_ids` text,
-  PRIMARY KEY (`user_id`, `guild_id`)
-);
-
 
 CREATE TABLE IF NOT EXISTS automated_messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,25 +44,10 @@ CREATE TABLE IF NOT EXISTS automated_messages (
 );
 
 
-CREATE TABLE IF NOT EXISTS youtube_last_video (
-    channel_id TEXT PRIMARY KEY,
-    last_video_id TEXT NOT NULL,
-    publish_date TEXT NOT NULL
-);
 
-CREATE TABLE IF NOT EXISTS modmail_tickets (
-    ticket_number INTEGER PRIMARY KEY AUTOINCREMENT,
-    channel_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    opened DATETIME NOT NULL DEFAULT (datetime('now')),
-    closed DATETIME
-);
-
-CREATE TABLE IF NOT EXISTS modmail_messages (
-    message_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ticket_number INTEGER NOT NULL,
-    author_id TEXT NOT NULL,
-    content TEXT NOT NULL,
-    timestamp DATETIME NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (ticket_number) REFERENCES modmail_tickets(ticket_number) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS whitelisted_alts (
+    user_id TEXT PRIMARY KEY,
+    whitelisted_by TEXT NOT NULL,
+    reason TEXT,
+    whitelisted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

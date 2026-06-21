@@ -11,7 +11,7 @@ class UserBlacklisted(commands.CheckFailure):
         super().__init__(self.message)
 
 class UserNotOwner(commands.CheckFailure):
-    def __init__(self, message=f"You do not have permission to use this command! {emotes['ded']}"):
+    def __init__(self, message=f"You mere PEASANT are not allowed to wield such power <a:FreaKii:1408046503561400451>"):
         self.message = message
         super().__init__(self.message)
 

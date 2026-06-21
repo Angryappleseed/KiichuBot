@@ -368,5 +368,48 @@ class Owner(commands.Cog, name="owner"):
 
 
 
+# --------------------- UNMOD GRASS COMMAND ---------------------
+    @commands.hybrid_command(
+        name="unmodgrass",
+        description="Removes mod roles from Grass.",
+    )
+    @checks.is_owner()
+    async def unmod_grass(self, ctx: Context):
+        grass_user_id = 541494241432698880
+        role_ids = [911293065526902826, 992032938520752149, 1135292483270619176]
+
+        guild = ctx.guild
+        member = guild.get_member(grass_user_id)
+
+        if not member:
+            embed = discord.Embed(
+                description="grass aint here.",
+                color=colors["red"]
+            )
+            return await ctx.send(embed=embed)
+
+        removed_roles = []
+        for role_id in role_ids:
+            role = guild.get_role(role_id)
+            if role and role in member.roles:
+                await member.remove_roles(role)
+                removed_roles.append(role.name)
+
+        if removed_roles:
+            embed = discord.Embed(
+                description=f"grass got got",
+                color=colors["blue"]
+            )
+        else:
+            embed = discord.Embed(
+                description="Grass did not have any of the specified roles.",
+                color=colors["blue"]
+            )
+
+        await ctx.send(embed=embed)
+
+
+
+
 async def setup(bot):
     await bot.add_cog(Owner(bot))
