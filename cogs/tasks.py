@@ -214,13 +214,15 @@ class Tasks(commands.Cog, name="tasks"):
         self.TICKET_TOOL_BOT_ID = 557628352828014614
 
         self.goodbye_messages = [
-            "***{name}** has been consumed. <:Kiichomp:789878586907557928>",
-            "**{name}** has taken their leave... They will be missed. <:KiiCrying:1334189979395424348>",
+            "**{name}** has been consumed. <:Kiichomp:789878586907557928>",
+            "**{name}** has taken their leave... You will be missed. <:KiiCrying:1334189979395424348>",
             "The void has consumed **{name}**. <:KiiNotLikeThis:812243537058856960>",
-            "Good luck on your ventures **{name}**! Surely they didn't find a new oshi to replace Kiichan. <:Kiien:1192124110881439844>",
-            "**{name}** has left the fox den. <a:KiiNodders:1015000796355641424>",
+            "Good luck on your ventures **{name}**! Surely they didn't find a new oshi... <:Kiien:1192124110881439844>",
+            "**{name}** has left the fox den. <:KiiCrying:1334189979395424348>",
             "**{name}** will be remembered... <a:KiiNodders:1015000796355641424>",
         ]
+
+        self.recently_auto_kicked = set()
 
 #----------- whitelist helpers----------#
 
@@ -261,54 +263,87 @@ class Tasks(commands.Cog, name="tasks"):
             return
 
         try:
+            # Try to get user's avatar, fallback to default Discord avatar or local image
+            if member.avatar:
+                avatar_url = str(member.avatar.replace(size=256).url)
+            else:
+                avatar_url = str(member.default_avatar.url)
+
             async with aiohttp.ClientSession() as session:
-                async with session.get(str(member.avatar.replace(size=256).url)) as resp:
+                async with session.get(avatar_url) as resp:
+                    if resp.status != 200:
+                        raise Exception("Failed to download avatar")
                     avatar_bytes = await resp.read()
 
             with Image.open(TEMPLATE_PATH) as template:
-                with Image.open(io.BytesIO(avatar_bytes)) as avatar:
-                    avatar = avatar.resize((350, 350))
-                    mask = Image.new('L', avatar.size, 0)
-                    draw = ImageDraw.Draw(mask)
-                    draw.ellipse((0, 0) + avatar.size, fill=255)
-                    avatar = ImageOps.fit(avatar, mask.size, centering=(0.5, 0.5))
-                    avatar.putalpha(mask)
+                try:
+                    with Image.open(io.BytesIO(avatar_bytes)) as avatar:
+                        # Force conversion to RGBA to avoid transparency issues
+                        avatar = avatar.convert('RGBA')
+                        avatar = avatar.resize((350, 350))
 
-                    border_size = 10
-                    total_size = (avatar.size[0] + border_size * 2, avatar.size[1] + border_size * 2)
-                    bordered_avatar = Image.new('RGBA', total_size, (255, 255, 255, 0))
-                    bordered_avatar.paste(avatar, (border_size, border_size), avatar)
+                        mask = Image.new('L', avatar.size, 0)
+                        draw = ImageDraw.Draw(mask)
+                        draw.ellipse((0, 0) + avatar.size, fill=255)
 
-                    template_width, template_height = template.size
-                    avatar_width, avatar_height = bordered_avatar.size
-                    avatar_position = ((template_width - avatar_width) // 2, (template_height - avatar_height) // 2 - 57)
+                        avatar = ImageOps.fit(avatar, mask.size, centering=(0.5, 0.5))
+                        avatar.putalpha(mask)
 
-                    template.paste(bordered_avatar, avatar_position, bordered_avatar)
+                except Exception as img_error:
+                    print(f"Avatar processing failed for {member}, using local default: {img_error}")
+                    # Fallback to local default avatar image
+                    default_path = os.path.join(self.images_dir, "default_avatar.png")
+                    with Image.open(default_path) as avatar:
+                        avatar = avatar.convert('RGBA')
+                        avatar = avatar.resize((350, 350))
 
-                    draw = ImageDraw.Draw(template)
-                    try:
-                        font = ImageFont.truetype(FONT_PATH, 48)
-                    except IOError:
-                        font = ImageFont.load_default()
+                        mask = Image.new('L', avatar.size, 0)
+                        draw = ImageDraw.Draw(mask)
+                        draw.ellipse((0, 0) + avatar.size, fill=255)
 
-                    username = member.name[:20] + '...' if len(member.name) > 20 else member.name
-                    left, top, right, bottom = font.getbbox(username)
-                    text_width = right - left
-                    text_position = ((template_width - text_width) // 2, avatar_position[1] + avatar_height + 10)
-                    draw.text(text_position, username, fill=(0, 0, 0), font=font)
+                        avatar = ImageOps.fit(avatar, mask.size, centering=(0.5, 0.5))
+                        avatar.putalpha(mask)
+
+                # Rest of the image compositing
+                border_size = 10
+                total_size = (avatar.size[0] + border_size * 2, avatar.size[1] + border_size * 2)
+                bordered_avatar = Image.new('RGBA', total_size, (255, 255, 255, 0))
+                bordered_avatar.paste(avatar, (border_size, border_size), avatar)
+
+                template_width, template_height = template.size
+                avatar_width, avatar_height = bordered_avatar.size
+                avatar_position = ((template_width - avatar_width) // 2, (template_height - avatar_height) // 2 - 57)
+
+                template.paste(bordered_avatar, avatar_position, bordered_avatar)
+
+                draw = ImageDraw.Draw(template)
+                try:
+                    font = ImageFont.truetype(FONT_PATH, 48)
+                except IOError:
+                    font = ImageFont.load_default()
+
+                username = member.name[:20] + '...' if len(member.name) > 20 else member.name
+                left, top, right, bottom = font.getbbox(username)
+                text_width = right - left
+                text_position = ((template_width - text_width) // 2, avatar_position[1] + avatar_height + 10)
+                draw.text(text_position, username, fill=(0, 0, 0), font=font)
 
                 output_buffer = io.BytesIO()
                 template.save(output_buffer, 'PNG')
                 output_buffer.seek(0)
                 file = discord.File(fp=output_buffer, filename="welcome_image.png")
 
-            msg = f"Hi konkon! Welcome to Kiichan's Fox Den {member.mention}!\nPlease read the <#912401777356312576> and enjoy your stay!\n"
+            msg = f"Hi konkon! Welcome to Kiichan's Fox Den {member.mention}!\nPlease read the <#912401777356312576> and enjoy your stay! {emotes.get('comfy', '')}\n"
 
             await channel.send(msg, file=file)
 
         except Exception as e:
-            print(f"Welcome image failed for {member}: {e}")
-            await channel.send(f"Welcome {member.mention}! Please enjoy your sta")
+            print(f"Welcome image failed for {member} ({member.id}): {e}")
+            # Ultimate fallback: text only
+            await channel.send(
+                f"Hi konkon! Welcome to Kiichan's Fox Den {member.mention}!\n"
+                "Please read the <#912401777356312576> and enjoy your stay!\n"
+            )
 
 
 
@@ -377,28 +412,11 @@ class Tasks(commands.Cog, name="tasks"):
     async def on_member_update(self, before, after):
         higher_roles = {HEADPATTERS_ROLE_ID, LIWE_ROLE_ID, PROTECTOR_ROLE_ID, GOD_ROLE_ID}
 
-        # Trigger fancy welcome when Fresh Meat role is assigned (new users via onboarding or Carl-bot reassign)
-        if (FRESH_MEAT_ROLE_ID not in [r.id for r in before.roles] and 
-            FRESH_MEAT_ROLE_ID in [r.id for r in after.roles]):
-            await self.send_fancy_welcome(after)
+        if (FAILED_VERIFY_ROLE_ID not in [r.id for r in before.roles] and 
+            FAILED_VERIFY_ROLE_ID in [r.id for r in after.roles]):
 
-        # detect if a user receives headpatters or higher roles and remove fresh meat role
-        received_higher_role = any(role.id in higher_roles for role in after.roles) and not any(role.id in higher_roles for role in before.roles)
-        if received_higher_role and FRESH_MEAT_ROLE_ID in [role.id for role in before.roles]:
-            fresh_meat_role = discord.utils.get(after.guild.roles, id=FRESH_MEAT_ROLE_ID)
-            if fresh_meat_role:
-                await after.remove_roles(fresh_meat_role)
-
-        # detect if someone gets fresh meat while having headpatters or higher roles
-        if FRESH_MEAT_ROLE_ID in [role.id for role in after.roles]:
             if any(role.id in higher_roles for role in after.roles):
-                fresh_meat_role = discord.utils.get(after.guild.roles, id=FRESH_MEAT_ROLE_ID)
-                if fresh_meat_role:
-                    await after.remove_roles(fresh_meat_role)
-
-        # detect if someone failed verify
-        if FAILED_VERIFY_ROLE_ID in [role.id for role in after.roles] and FAILED_VERIFY_ROLE_ID not in [role.id for role in before.roles]:
-            if any(role.id in higher_roles for role in after.roles):
+                # Headpatters+ clicked the wrong button, just remove the failed verify
                 log_channel = self.bot.get_channel(self.log_channel_id)
                 if log_channel:
                     embed = discord.Embed(
@@ -414,11 +432,13 @@ class Tasks(commands.Cog, name="tasks"):
                 if failed_verify_role:
                     await after.remove_roles(failed_verify_role)
             else:
+                # Normal user failed verification, kick
                 log_channel = self.bot.get_channel(self.log_channel_id)
                 if log_channel:
                     embed = discord.Embed(
                         title="Potential Bot Kicked",
-                        description=f"**User: **{after.name} {after.mention}\nUser clicked on the button that tells them NOT TO CLICK ON, so they were automatically removed. {emotes['pien']}",
+                        description=f"**User:** {after.name} {after.mention}\n"
+                                    f"Clicked on the button that tells them NOT TO CLICK ON. {emotes['pien']}",
                         color=colors["red"],
                         timestamp=datetime.now()
                     )
@@ -429,11 +449,44 @@ class Tasks(commands.Cog, name="tasks"):
                 if failed_verify_role:
                     await after.remove_roles(failed_verify_role)
 
-                # short delay before kicking the user to make sure nothing breaks
                 await asyncio.sleep(2)
-
+                self.recently_auto_kicked.add(after.id)
                 await after.kick(reason="Clicked on Bot Deterrent button.")
+            return
 
+
+        # Fresh Meat Welcome
+
+
+        # Only send welcome if Fresh Meat was just added AND they do NOT have Failed Verify
+        if (FRESH_MEAT_ROLE_ID not in [r.id for r in before.roles] and 
+            FRESH_MEAT_ROLE_ID in [r.id for r in after.roles]):
+
+            # Check if they also have Failed Verify (bad onboarding case)
+            if FAILED_VERIFY_ROLE_ID in [r.id for r in after.roles]:
+                # Do NOT send welcome, just let the failed verify logic handle it
+                return
+
+            # Good case: Fresh Meat + no Failed Verify
+            await self.send_fancy_welcome(after)
+
+
+        # Clean roles
+
+
+        # Remove Fresh Meat if they get higher roles
+        received_higher_role = any(role.id in higher_roles for role in after.roles) and not any(role.id in higher_roles for role in before.roles)
+        if received_higher_role and FRESH_MEAT_ROLE_ID in [role.id for role in before.roles]:
+            fresh_meat_role = discord.utils.get(after.guild.roles, id=FRESH_MEAT_ROLE_ID)
+            if fresh_meat_role:
+                await after.remove_roles(fresh_meat_role)
+
+        # Remove Fresh Meat if they somehow have both Fresh Meat + higher roles
+        if FRESH_MEAT_ROLE_ID in [role.id for role in after.roles]:
+            if any(role.id in higher_roles for role in after.roles):
+                fresh_meat_role = discord.utils.get(after.guild.roles, id=FRESH_MEAT_ROLE_ID)
+                if fresh_meat_role:
+                    await after.remove_roles(fresh_meat_role)
 
 
 #------------NEW ACCOUNT DETECTION------------------#
@@ -468,6 +521,23 @@ class Tasks(commands.Cog, name="tasks"):
                     )
                 except discord.Forbidden:
                     pass
+
+                # mark as recently kicked in the list
+                self.recently_auto_kicked.add(member.id)
+
+                log_channel = self.bot.get_channel(self.log_channel_id)
+                if log_channel:
+                    embed = discord.Embed(
+                        title="Suspected Alt Kicked",
+                        description=f"**User:** {member}{member.mention}\n"
+                                    f"Account is only {account_age_days} days old. (required age is {self.min_account_age_days} days) {emotes['pien']}",
+                        color=colors["red"],
+                        timestamp=datetime.now()
+                    )
+                    embed.set_footer(text=f"User ID: {member.id}")
+                    await log_channel.send(embed=embed)
+
+
                 await member.kick(reason=f"Account too new ({account_age_days} days).")
                 return
 
@@ -476,17 +546,18 @@ class Tasks(commands.Cog, name="tasks"):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
+        # Skip goodbye message if this was a bot-initiated auto-kick
+        if member.id in self.recently_auto_kicked:
+            self.recently_auto_kicked.discard(member.id)
+            return
+
         channel = self.bot.get_channel(WELCOME_CHANNEL_ID)
         if not channel:
             return
 
         template = random.choice(self.goodbye_messages)
+        goodbye_message = template.format(name=member.name) 
 
-        goodbye_message = template.format(
-            mention=member.mention,
-            name=member.name
-        )
-        
         await channel.send(goodbye_message)
 
 
