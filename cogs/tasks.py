@@ -388,7 +388,7 @@ class Tasks(commands.Cog, name="tasks"):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
 
-        # Check if the message is from TicketTool and in a ticket channel
+        # check if message is from TicketTool and in ticket channel
         if message.author.id == self.TICKET_TOOL_BOT_ID and "ticket-" in message.channel.name:
 
             # Check if there's a mention in the message
@@ -396,13 +396,20 @@ class Tasks(commands.Cog, name="tasks"):
                 ticket_creator = message.mentions[0]  # Get the mentioned user
                 new_channel_name = f"{ticket_creator.name.lower()}"
 
-                # Rename the channel
                 try:
+                    # rename channel
                     await message.channel.edit(name=new_channel_name)
                     print(f"Renamed channel to {new_channel_name}")
-                except Exception as e:
-                    print(f"Failed to rename channel: {e}")
+                    # overwrite perms
+                    overwrites = message.channel.overwrites_for(ticket_creator)
+                    overwrites.attach_files = True
+                    overwrites.embed_links = True
+                    await message.channel.set_permissions(ticket_creator, overwrite=overwrites)
 
+                    print(f"Granted attach_files + embed_links to {ticket_creator}")
+
+                except Exception as e:
+                    print(f"Failed to rename channel / set permissions: {e}")
 
 
 
