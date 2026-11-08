@@ -7,7 +7,7 @@ import random
 
 from typing import List
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import discord
 from discord import app_commands
@@ -21,6 +21,9 @@ from helpers.colors import colors
 from helpers.emotes import emotes
 
 
+
+from typing import List, Optional
+
 from helpers.database import(
     add_automated_message,
     remove_automated_message,
@@ -28,6 +31,7 @@ from helpers.database import(
     get_due_automated_messages,
     update_next_run
     )
+
 
 
 #welcome message imports
@@ -58,12 +62,17 @@ EXCLUDED_VOICE_CHANNELS = [786890857499852830, 1222214029829738538]
 
 # Welcome settings
 WELCOME_CHANNEL_ID = 751367236966547457
+LEAVE_LOG_CHANNEL_ID = 1568771393808765028
 TEMPLATE_PATH = './images/Kiichan_Welcome.png'
 FONT_PATH = './fonts/Poppins-Regular.ttf'
 
 HIGHER_ROLES = {HEADPATTERS_ROLE_ID, LIWE_ROLE_ID, PROTECTOR_ROLE_ID, GOD_ROLE_ID}
 
 APPEAL_SERVER_INVITE = "https://discord.gg/p5DnRR9z6w"
+
+
+SCAM_TRAP_CHANNEL_ID = 1542365017494659153
+
 
 def parse_time_interval(interval: str) -> int:
     match = re.match(r"(\d+)(s|min|hr|day)$", interval)
@@ -255,6 +264,80 @@ class Tasks(commands.Cog, name="tasks"):
 
 
 
+# --------------- bot scam trap helpers -----------#
+
+
+    async def get_scam_trap_ban_count(self) -> int:
+        async with aiosqlite.connect(DATABASE_PATH) as db:
+            cursor = await db.execute(
+                "SELECT ban_count FROM scam_trap_stats WHERE id = 1"
+            )
+            row = await cursor.fetchone()
+            return row[0] if row else 0
+
+
+    async def increment_scam_trap_bans(self) -> int:
+        async with aiosqlite.connect(DATABASE_PATH) as db:
+            await db.execute(
+                "UPDATE scam_trap_stats SET ban_count = ban_count + 1 WHERE id = 1"
+            )
+            await db.commit()
+            cursor = await db.execute(
+                "SELECT ban_count FROM scam_trap_stats WHERE id = 1"
+            )
+            row = await cursor.fetchone()
+            return row[0] if row else 0
+
+
+    async def set_scam_trap_warning_message_id(self, message_id: int):
+        async with aiosqlite.connect(DATABASE_PATH) as db:
+            await db.execute(
+                "UPDATE scam_trap_stats SET warning_message_id = ? WHERE id = 1",
+                (str(message_id),)
+            )
+            await db.commit()
+
+    async def get_scam_trap_warning_message_id(self) -> Optional[int]:
+        async with aiosqlite.connect(DATABASE_PATH) as db:
+            cursor = await db.execute(
+                "SELECT warning_message_id FROM scam_trap_stats WHERE id = 1"
+            )
+            row = await cursor.fetchone()
+            if row and row[0]:
+                return int(row[0])
+            return None
+
+    async def update_scam_trap_warning_embed(self, total: int):
+        channel = self.bot.get_channel(SCAM_TRAP_CHANNEL_ID)
+        if channel is None:
+            return
+
+        message_id = await self.get_scam_trap_warning_message_id()
+        if message_id is None:
+            return
+
+        try:
+            warning = await channel.fetch_message(message_id)
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+            return
+
+        if not warning.embeds:
+            return
+
+        embed = warning.embeds[0]
+        embed.set_footer(text=f"{total} victims have fallen victim.")
+        try:
+            await warning.edit(embed=embed)
+        except (discord.Forbidden, discord.HTTPException):
+            pass
+
+
+
+
+
+
+
+
 #-------------- Welcome message Logic------------------------#
     async def send_fancy_welcome(self, member: discord.Member):
         """Send fancy welcome image when Fresh Meat role is given."""
@@ -387,29 +470,101 @@ class Tasks(commands.Cog, name="tasks"):
 #---------Rename Tickettool channels-----------#
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        if message.guild is None:
+            return
 
-        # check if message is from TicketTool and in ticket channel
+        # TicketTool rename (bots only)
         if message.author.id == self.TICKET_TOOL_BOT_ID and "ticket-" in message.channel.name:
-
-            # Check if there's a mention in the message
             if message.mentions:
-                ticket_creator = message.mentions[0]  # Get the mentioned user
+                ticket_creator = message.mentions[0]
                 new_channel_name = f"{ticket_creator.name.lower()}"
 
                 try:
-                    # rename channel
                     await message.channel.edit(name=new_channel_name)
                     print(f"Renamed channel to {new_channel_name}")
-                    # overwrite perms
+
                     overwrites = message.channel.overwrites_for(ticket_creator)
                     overwrites.attach_files = True
                     overwrites.embed_links = True
                     await message.channel.set_permissions(ticket_creator, overwrite=overwrites)
-
                     print(f"Granted attach_files + embed_links to {ticket_creator}")
-
                 except Exception as e:
                     print(f"Failed to rename channel / set permissions: {e}")
+            return
+
+        # Ignore other bots / the bot itself
+        if message.author.bot:
+            return
+
+        #---------Scam / bot honeypot channel-----------#
+        if message.channel.id == SCAM_TRAP_CHANNEL_ID and isinstance(message.author, discord.Member):
+            member = message.author
+            content_preview = message.content[:1000] or "*no text*"
+
+            try:
+                await member.send(
+                    f"Heyo {member.name}!\n"
+                    f"You were automatically banned from Kiichan's server for sending a message "
+                    f"in a channel that is not meant for chatting.\n\n"
+                    f"If this was a mistake, join the appeal server and post an appeal: {APPEAL_SERVER_INVITE}\n"
+                    f"A moderator will review it. <a:KiiNodders:1015000796355641424>"
+                )
+            except (discord.Forbidden, discord.HTTPException):
+                pass
+
+            await asyncio.sleep(2)
+
+            try:
+                await message.delete()
+            except (discord.Forbidden, discord.HTTPException):
+                pass
+
+            log_channel = self.bot.get_channel(self.log_channel_id)
+            banned = False
+
+            try:
+                await member.ban(
+                    reason="Posted in scam/bot deterrent channel.",
+                    delete_message_seconds=300,  # last 5 minutes, guild-wide
+                )
+                banned = True
+            except TypeError:
+                try:
+                    await member.ban(
+                        reason="Posted in scam/bot deterrent channel.",
+                        delete_message_days=1,
+                    )
+                    banned = True
+                except (discord.Forbidden, discord.HTTPException) as e:
+                    print(f"Failed to ban {member.id} from scam trap: {e}")
+            except discord.Forbidden:
+                if log_channel:
+                    await log_channel.send(
+                        f"Failed to ban {member.mention} (`{member.id}`) — "
+                        f"role hierarchy or missing Ban Members."
+                    )
+            except discord.HTTPException as e:
+                print(f"Failed to ban {member.id} from scam trap: {e}")
+
+            if not banned:
+                return
+
+            total = await self.increment_scam_trap_bans()
+            await self.update_scam_trap_warning_embed(total)
+
+            if log_channel:
+                embed = discord.Embed(
+                    title="Scam Trap Ban",
+                    description=(
+                        f"**User:** {member} {member.mention}\n"
+                        f"**Message:** {content_preview}\n"
+                        f"Automatically banned for posting in the deterrent channel."
+                    ),
+                    color=colors["red"],
+                    timestamp=datetime.now()
+                )
+                embed.set_footer(text=f"User ID: {member.id} • Total purged: {total}")
+                await log_channel.send(embed=embed)
 
 
 
@@ -549,23 +704,45 @@ class Tasks(commands.Cog, name="tasks"):
                 return
 
 
-#-------------ON MEMBER LEAVE - GOODBYE MESSAGE----------------#
+#-------------ON MEMBER LEAVE - GOODBYE MESSAGE (Public)----------------#
 
+    # @commands.Cog.listener()
+    # async def on_member_remove(self, member: discord.Member):
+    #     # Skip goodbye message if this was a bot-initiated auto-kick
+    #     if member.id in self.recently_auto_kicked:
+    #         self.recently_auto_kicked.discard(member.id)
+    #         return
+
+    #     channel = self.bot.get_channel(WELCOME_CHANNEL_ID)
+    #     if not channel:
+    #         return
+
+    #     template = random.choice(self.goodbye_messages)
+    #     goodbye_message = template.format(name=member.name) 
+
+    #     await channel.send(goodbye_message)
+
+
+#-------------ON MEMBER LEAVE - GOODBYE MESSAGE (Moderator)----------------#
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        # Skip goodbye message if this was a bot-initiated auto-kick
-        if member.id in self.recently_auto_kicked:
-            self.recently_auto_kicked.discard(member.id)
-            return
-
-        channel = self.bot.get_channel(WELCOME_CHANNEL_ID)
+        channel = self.bot.get_channel(LEAVE_LOG_CHANNEL_ID)
         if not channel:
             return
+        self.recently_auto_kicked.discard(member.id)
 
-        template = random.choice(self.goodbye_messages)
-        goodbye_message = template.format(name=member.name) 
+        embed = discord.Embed(
+            description=f"**{member}** {member.mention} (`{member.id}`) has left the server.",
+            color=colors["blue"],
+            timestamp=datetime.now()
+        )
+        embed.set_footer(text=f"User ID: {member.id}")
 
-        await channel.send(goodbye_message)
+        try:
+            await channel.send(embed=embed)
+        except (discord.Forbidden, discord.HTTPException) as e:
+            print(f"Failed to send leave log for {member.id}: {e}")
+
 
 
  #------------AUTO MUTE IN GAME ROOM 2------------------#
@@ -762,6 +939,43 @@ class Tasks(commands.Cog, name="tasks"):
 
 
 
+#--------------------SCAM TRAP MESSAGE----------------------#
+    @commands.hybrid_command(
+        name="scamtrapwarn",
+        description="Post the scam-trap warning embed in the deterrent channel."
+    )
+    @commands.guild_only()
+    @checks.not_blacklisted()
+    @checks.is_owner()
+    @commands.has_permissions(manage_guild=True)
+    async def scamtrapwarn(self, ctx: commands.Context):
+        channel = self.bot.get_channel(SCAM_TRAP_CHANNEL_ID)
+        if channel is None:
+            return await ctx.send("Scam trap channel not found.")
+
+        total = await self.get_scam_trap_ban_count()
+
+        embed = discord.Embed(
+            title="DO NOT SEND ANY MESSAGES HERE",
+            description=(
+                "This channel is used to detect any automated messages and bot accounts. "
+                "Any message sent here will result in an immediate automatic ban. "
+                "You have been warned! <:KiiThumbsUp:1485265060803772539>"
+            ),
+            color=colors["red"],
+        )
+        embed.set_footer(text=f"{total} victims have fallen victim.")
+        embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/783955175025934375/1546676155753570354/KiiFREAKY.gif")  # direct gif/png URL
+
+        msg = await channel.send(embed=embed)
+        await self.set_scam_trap_warning_message_id(msg.id)
+
+        if ctx.channel.id != SCAM_TRAP_CHANNEL_ID:
+            await ctx.send(f"Warning posted in {channel.mention}.")
+
+
+
+
 
 #--------------------VOICE CHANNEL LOGGING----------------------#
 
@@ -805,6 +1019,11 @@ class Tasks(commands.Cog, name="tasks"):
             )
             embed.set_footer(text=f"User ID: {member.id}")
             await vclogs_channel.send(embed=embed)
+
+
+
+
+
 
 
 

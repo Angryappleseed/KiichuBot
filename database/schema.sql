@@ -51,3 +51,11 @@ CREATE TABLE IF NOT EXISTS whitelisted_alts (
     reason TEXT,
     whitelisted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS scam_trap_stats (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    ban_count INTEGER NOT NULL DEFAULT 0,
+    warning_message_id TEXT
+);
+
+INSERT OR IGNORE INTO scam_trap_stats (id, ban_count) VALUES (1, 0);

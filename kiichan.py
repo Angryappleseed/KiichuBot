@@ -72,7 +72,8 @@ class KiichuBot(commands.Bot):
 
 bot = KiichuBot(command_prefix=KiichuBot.get_custom_prefix, 
                  intents=intents, 
-                 help_command=None)
+                 help_command=None,
+                 case_insensitive=True)
 
 
 
@@ -250,6 +251,10 @@ async def on_command_completion(context: Context) -> None:
 @bot.event
 async def on_command_error(context: Context, error) -> None:
 
+    # Unwrap CommandInvokeError so nested errors are still caught
+    if isinstance(error, commands.CommandInvokeError) and error.original:
+        error = error.original
+
     #-------------------COMMAND ON COOLDOWN------------------------#
     if isinstance(error, commands.CommandOnCooldown):
         minutes, seconds = divmod(error.retry_after, 60)
@@ -280,7 +285,7 @@ async def on_command_error(context: Context, error) -> None:
     #-------------------USER IS NOT AN OWNER------------------------#
     elif isinstance(error, exceptions.UserNotOwner):
         embed = discord.Embed(
-            description=f"You are not the owner of KiichuBot! {emotes['ded']}", color=colors["red"]
+            description=f"You are not Seed. Do NOT touch his SHIT!", color=colors["red"]
         )
         await context.send(embed=embed)
         if context.guild:
@@ -295,10 +300,10 @@ async def on_command_error(context: Context, error) -> None:
 
     #-------------------USER IS NOT TRUSTED------------------------#
     elif isinstance(error, exceptions.UserNotTrusted):
-        embed = discord.Embed(
-            description=f"You are not a Trusted User of KiichuBot! {emotes['ded']}", color=colors["red"]
-        )
-        await context.send(embed=embed)
+        # embed = discord.Embed(
+        #     description=f"You are not a Trusted User of KiichuBot! {emotes['ded']}", color=colors["red"]
+        # )
+        # await context.send(embed=embed)
         if context.guild:
             bot.logger.warning(
                 f"{context.author} (ID: {context.author.id}) tried to execute a trusted-user only command in the guild {context.guild.name} (ID: {context.guild.id})."
@@ -311,10 +316,10 @@ async def on_command_error(context: Context, error) -> None:
 
     #-------------------USER IS NOT MODERATORr------------------------#
     elif isinstance(error, exceptions.UserNotModerator):
-        embed = discord.Embed(
-            description=f"You are not a Moderator! {emotes['ded']}", color=colors["red"]
-        )
-        await context.send(embed=embed)
+        # embed = discord.Embed(
+        #     description=f"You are not a mod. Do NOT touch this shit!", color=colors["red"]
+        # )
+        # await context.send(embed=embed)
         if context.guild:
             bot.logger.warning(
                 f"{context.author} (ID: {context.author.id}) tried to execute a moderator only command in the guild {context.guild.name} (ID: {context.guild.id})."
@@ -330,6 +335,7 @@ async def on_command_error(context: Context, error) -> None:
         embed = discord.Embed(
             description="You are missing the permission(s) `" + ", ".join(error.missing_permissions) + f"` to execute this command! {emotes['ded']}",
             color=colors["red"],
+            timestamp=datetime.now()
         )
         await context.send(embed=embed)
 
@@ -338,6 +344,7 @@ async def on_command_error(context: Context, error) -> None:
         embed = discord.Embed(
             description="I am missing the permission(s) `" + ", ".join(error.missing_permissions) + f"` to fully perform this command! {emotes['ded']}",
             color=colors["red"],
+            timestamp=datetime.now()
         )
         await context.send(embed=embed)
 
@@ -347,10 +354,24 @@ async def on_command_error(context: Context, error) -> None:
             title=f"Error! {emotes['ded']}",
             description=str(error).capitalize(),
             color=colors["red"],
+            timestamp=datetime.now()
         )
         await context.send(embed=embed)
+
+
+    #-------------------USER / MEMBER NOT FOUND------------------------#
+    elif isinstance(error, (commands.UserNotFound, commands.MemberNotFound)):
+        embed = discord.Embed(
+            description=f"Could not find that user. You should uhhh, try to put the right UserID",
+            color=colors["red"],
+            timestamp=datetime.now()
+        )
+        await context.send(embed=embed)
+
+    
     else:
         raise error
+
 
 
 

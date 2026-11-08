@@ -23,7 +23,9 @@ NORI_ROLE_ID = int(config['nori_role_id'])
 MOD_ROLE_IDS = config['modRoles']
 JAILED_ROLE_ID = int(config['jailed_role_id'])
 AUTOMOD_CHANNEL_ID = int(config['automod_channel_id'])
-
+THREE_LEGS_ROLE_ID = 928604398828007445
+TWO_LEGS_ROLE_ID = 928604508588740628
+ONE_LEG_ROLE_ID = 928604564003881002
 
 
 
@@ -316,14 +318,23 @@ class Moderation(commands.Cog, name="moderation"):
         )
         embed.set_footer(text=f"User ID: {member.id}")
         embed.add_field(name="Reason:", value=reason)
-        await context.send(embed=embed)
 
+        dm_sent = True
         try:
             await member.send(
                 f"You were warned in **{context.guild.name}**!\nReason: {reason}"
             )
-        except:
-            pass
+        except (discord.Forbidden, discord.HTTPException):
+            dm_sent = False
+
+        if not dm_sent:
+            embed.add_field(
+                name="DM Status",
+                value="Could not DM this user (DMs closed or bot blocked perhaps)",
+                inline=False
+            )
+
+        await context.send(embed=embed)
 
 
 #-----------------------REMOVE WARN-----------------------#
@@ -564,6 +575,386 @@ class Moderation(commands.Cog, name="moderation"):
         await context.channel.send(embed=embed, delete_after=3)
 
 
+#-------------------------VELZ PURGE (user-targeted)-------------------------#
+
+    class VelzPurgeConfirmView(discord.ui.View):
+        def __init__(self, author_id: int, target: discord.Member, amount: int, timeout: float = 60):
+            super().__init__(timeout=timeout)
+            self.author_id = author_id
+            self.target = target
+            self.amount = amount
+            self.value = None  # True = proceed, False = cancel
+
+        async def interaction_check(self, interaction: discord.Interaction) -> bool:
+            if interaction.user.id != self.author_id:
+                await interaction.response.send_message(
+                    "Only the moderator who ran this command can decide their fate.",
+                    ephemeral=True
+                )
+                return False
+            return True
+
+        @discord.ui.button(label="Proceed, I agree.", style=discord.ButtonStyle.danger)
+        async def proceed(self, interaction: discord.Interaction, button: discord.ui.Button):
+            self.value = True
+            for child in self.children:
+                child.disabled = True
+            await interaction.response.edit_message(view=self)
+            self.stop()
+
+        @discord.ui.button(label="CANCEL! I fucked UP!", style=discord.ButtonStyle.secondary)
+        async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+            self.value = False
+            for child in self.children:
+                child.disabled = True
+            await interaction.response.edit_message(view=self)
+            self.stop()
+
+        async def on_timeout(self):
+            for child in self.children:
+                child.disabled = True
+
+    @commands.hybrid_command(
+        name="velzpurge",
+        description="Delete a set number of a specific user's messages across the server."
+    )
+    @checks.not_blacklisted()
+    @checks.is_moderator()
+    @commands.has_guild_permissions(manage_messages=True)
+    @commands.bot_has_permissions(manage_messages=True)
+    @app_commands.describe(
+        user="The user whose messages should be deleted.",
+        amount="How many of that user's messages to delete (newest first)."
+    )
+    async def velzpurge(self, context: Context, user: discord.Member, amount: int) -> None:
+        if amount < 1:
+            embed = discord.Embed(
+                description="Amount must be at least 1.",
+                color=colors["red"],
+                timestamp=datetime.now()
+            )
+            await context.send(embed=embed)
+            return
+
+        if amount > 100:
+            embed = discord.Embed(
+                description="Are you SURE you didnt put the UserID in the wrong spot?",
+                color=colors["red"],
+                timestamp=datetime.now()
+            )
+            await context.send(embed=embed)
+            return
+
+        confirm_embed = discord.Embed(
+            title="Velz Purge Confirmation",
+            description=(
+                f"You are attempting to delete the last **{amount}** of **{user}** {user.mention}'s messages "
+                f"**across the entire server**.\n\n"
+                f"**Are YOU SURE THIS IS CORRECT?**\n"
+                f"Do you accept all responsibility for attempting to use this command and any "
+                f"potential ramifications for any improper usage?"
+            ),
+            color=colors["gold"],
+            timestamp=datetime.now()
+        )
+        confirm_embed.set_footer(text=f"Target User ID: {user.id}")
+
+        view = self.VelzPurgeConfirmView(context.author.id, user, amount)
+        prompt = await context.send(embed=confirm_embed, view=view)
+
+        await view.wait()
+
+        if view.value is None:
+            await prompt.edit(
+                embed=discord.Embed(
+                    description="Velz purge cancelled — confirmation timed out.",
+                    color=colors["red"],
+                    timestamp=datetime.now()
+                ),
+                view=None
+            )
+            return
+
+        if view.value is False:
+            await prompt.edit(
+                embed=discord.Embed(
+                    description="Velz purge Aborted. No messages were deleted.",
+                    color=colors["red"],
+                    timestamp=datetime.now()
+                ),
+                view=None
+            )
+            return
+
+        await prompt.edit(
+            embed=discord.Embed(
+                description=(
+                    f"Scanning channels/threads for up to **{amount}** messages from {user.mention}...\n"
+                    f"This can take a bit. Teka short... Get it? kasi like wait lang sounds like wait long"
+                ),
+                color=colors["blue"],
+                timestamp=datetime.now()
+            ),
+            view=None
+        )
+
+        me = context.guild.me
+        found = []
+
+        per_channel_scan = 150
+        archived_thread_limit = 25
+
+        async def scan_history(channel):
+            perms = channel.permissions_for(me)
+            if not (perms.view_channel and perms.read_message_history and perms.manage_messages):
+                return
+            try:
+                async for message in channel.history(limit=per_channel_scan):
+                    if message.author.id == user.id:
+                        found.append(message)
+            except (discord.Forbidden, discord.HTTPException):
+                return
+
+        # 1) Text channels + their threads
+        for channel in context.guild.text_channels:
+            await scan_history(channel)
+            await asyncio.sleep(0.15)
+
+            for thread in channel.threads:
+                await scan_history(thread)
+                await asyncio.sleep(0.1)
+
+            try:
+                async for thread in channel.archived_threads(limit=archived_thread_limit):
+                    await scan_history(thread)
+                    await asyncio.sleep(0.1)
+            except (discord.Forbidden, discord.HTTPException):
+                pass
+
+            if len(found) >= amount * 5:
+                break
+
+        # 2) Forum channels (posts are threads)
+        for forum in getattr(context.guild, "forums", []):
+            await asyncio.sleep(0.15)
+
+            for thread in forum.threads:
+                await scan_history(thread)
+                await asyncio.sleep(0.1)
+
+            try:
+                async for thread in forum.archived_threads(limit=archived_thread_limit):
+                    await scan_history(thread)
+                    await asyncio.sleep(0.1)
+            except (discord.Forbidden, discord.HTTPException):
+                pass
+
+            if len(found) >= amount * 5:
+                break
+
+        # 3) Any other active guild threads we might have missed
+        for thread in context.guild.threads:
+            if any(m.channel.id == thread.id for m in found):
+                continue
+            await scan_history(thread)
+            await asyncio.sleep(0.1)
+
+        if not found:
+            await prompt.edit(
+                embed=discord.Embed(
+                    description=f"No recent messages from {user.mention} were found.",
+                    color=colors["red"],
+                    timestamp=datetime.now()
+                )
+            )
+            return
+
+        # Newest first, then take only the requested amount
+        found.sort(key=lambda m: m.created_at, reverse=True)
+        to_delete = found[:amount]
+
+        # Group by channel for delete_messages / logging
+        by_channel = {}
+        for message in to_delete:
+            by_channel.setdefault(message.channel, []).append(message)
+
+        deleted_count = 0
+        channels_touched = 0
+
+        for channel, messages in by_channel.items():
+            channels_touched += 1
+            try:
+                await self.log_purge(channel, context.author, messages)
+            except Exception:
+                pass
+
+            bulk = [
+                m for m in messages
+                if (datetime.now(m.created_at.tzinfo) - m.created_at).days < 14
+            ]
+            old = [m for m in messages if m not in bulk]
+
+            # bulk delete needs 2+ messages
+            if len(bulk) == 1:
+                old.append(bulk.pop())
+
+            if bulk:
+                try:
+                    await channel.delete_messages(bulk)
+                    deleted_count += len(bulk)
+                except discord.HTTPException:
+                    old.extend(bulk)
+
+            for message in old:
+                try:
+                    await message.delete()
+                    deleted_count += 1
+                except (discord.Forbidden, discord.HTTPException):
+                    continue
+
+        done_embed = discord.Embed(
+            title="Velz Purge Complete",
+            description=(
+                f"**{context.author}** deleted **{deleted_count}** message(s) "
+                f"from **{user}** {user.mention} "
+                f"across **{channels_touched}** channel(s)/thread(s)."
+            ),
+            color=colors["blue"],
+            timestamp=datetime.now()
+        )
+        done_embed.set_footer(text=f"Target User ID: {user.id}")
+        await prompt.edit(embed=done_embed)
+
+
+
+
+
+
+#-------------------------CRUSH FEMUR-------------------------#
+
+    @commands.hybrid_command(
+        name="crushfemur",
+        description="MODS CRUSH THEIR FEMURS!!"
+    )
+    @checks.not_blacklisted()
+    @checks.is_moderator()
+    @commands.bot_has_permissions(manage_roles=True)
+    @app_commands.describe(
+        user="The femur crushee",
+        amount="How many legs to remove. Default is 1."
+    )
+    async def crushfemur(
+        self, context: Context, user: discord.Member, amount: int = 1
+    ) -> None:
+        if amount not in (1, 2):
+            embed = discord.Embed(
+                description="Amount must be `1` or `2`.",
+                color=colors["red"],
+                timestamp=datetime.now()
+            )
+            await context.send(embed=embed)
+            return
+
+        three_legs = context.guild.get_role(THREE_LEGS_ROLE_ID)
+        two_legs = context.guild.get_role(TWO_LEGS_ROLE_ID)
+        one_leg = context.guild.get_role(ONE_LEG_ROLE_ID)
+
+        if not all((three_legs, two_legs, one_leg)):
+            embed = discord.Embed(
+                description="One or more leg roles could not be found. Check the role IDs.",
+                color=colors["red"],
+                timestamp=datetime.now()
+            )
+            await context.send(embed=embed)
+            return
+
+        # determine current legs (users MIGHT have more than 1 leg role)
+        if three_legs in user.roles:
+            current = 3
+        elif two_legs in user.roles:
+            current = 2
+        elif one_leg in user.roles:
+            current = 1
+        else:
+            embed = discord.Embed(
+                description=f"{user.mention} does not have any leg roles.",
+                color=colors["red"],
+                timestamp=datetime.now()
+            )
+            await context.send(embed=embed)
+            return
+
+        # if on last leg
+        if current == 1:
+            embed = discord.Embed(
+                description=(
+                    f"{user.mention} is already on their last leg. "
+                    f"There are no more femurs left to crush."
+                ),
+                color=colors["red"],
+                timestamp=datetime.now()
+            )
+            embed.set_footer(text=f"User ID: {user.id}")
+            await context.send(embed=embed)
+            return
+
+        # cant remove legs to lower than 1
+        remove = min(amount, current - 1)
+        new_legs = current - remove
+
+        roles_to_remove = []
+        if three_legs in user.roles:
+            roles_to_remove.append(three_legs)
+        if two_legs in user.roles:
+            roles_to_remove.append(two_legs)
+        if one_leg in user.roles:
+            roles_to_remove.append(one_leg)
+
+        role_to_add = {
+            3: three_legs,
+            2: two_legs,
+            1: one_leg,
+        }[new_legs]
+
+        try:
+            if roles_to_remove:
+                await user.remove_roles(*roles_to_remove, reason=f"crushfemur by {context.author}")
+            await user.add_roles(role_to_add, reason=f"crushfemur by {context.author}")
+        except discord.Forbidden:
+            embed = discord.Embed(
+                description=(
+                    "I couldn't update that user's roles... I hate you grass"
+                ),
+                color=colors["red"],
+                timestamp=datetime.now()
+            )
+            await context.send(embed=embed)
+            return
+        except discord.HTTPException as e:
+            embed = discord.Embed(
+                description=f"Failed to update roles: {e}",
+                color=colors["red"],
+                timestamp=datetime.now()
+            )
+            await context.send(embed=embed)
+            return
+
+        legs_word = "leg" if new_legs == 1 else "legs"
+        removed_word = "femur" if remove == 1 else "femurs"
+
+        embed = discord.Embed(
+            title="Femur Crushed!",
+            description=(
+                f"**Crushee:** {user} {user.mention}\n"
+                f"**Responsible Moderator:** {context.author}\n"
+                f"**Removed:** {remove} {removed_word}\n"
+                f"**Legs remaining:** {new_legs} {legs_word}"
+            ),
+            color=colors["blue"],
+            timestamp=datetime.now()
+        )
+        embed.set_footer(text=f"User ID: {user.id}")
+        await context.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
