@@ -51,6 +51,7 @@ with open('config.json', 'r') as config_file:
 FRESH_MEAT_ROLE_ID = int(config['fresh_meat_role_id'])
 HEADPATTERS_ROLE_ID = int(config['headpatters_role_id'])
 LIWE_ROLE_ID = int(config['liwe_role_id'])
+DENDWELLER_ROLE_ID = int(config['dendweller_role_id'])
 PROTECTOR_ROLE_ID = int(config['protector_role_id'])
 GOD_ROLE_ID = int(config['god_role_id'])
 FAILED_VERIFY_ROLE_ID = int(config['failed_verify_role_id'])
@@ -66,7 +67,7 @@ LEAVE_LOG_CHANNEL_ID = 1573845591358963743
 TEMPLATE_PATH = './images/Kiichan_Welcome.png'
 FONT_PATH = './fonts/Poppins-Regular.ttf'
 
-HIGHER_ROLES = {HEADPATTERS_ROLE_ID, LIWE_ROLE_ID, PROTECTOR_ROLE_ID, GOD_ROLE_ID}
+HIGHER_ROLES = {HEADPATTERS_ROLE_ID, LIWE_ROLE_ID, DENDWELLER_ROLE_ID, PROTECTOR_ROLE_ID, GOD_ROLE_ID}
 
 APPEAL_SERVER_INVITE = "https://discord.gg/p5DnRR9z6w"
 
