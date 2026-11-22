@@ -73,7 +73,7 @@ APPEAL_SERVER_INVITE = "https://discord.gg/p5DnRR9z6w"
 
 
 SCAM_TRAP_CHANNEL_ID = 1573845903838552225
-
+AUTOMOD_CHANNEL_ID = 1573821401213968398
 
 def parse_time_interval(interval: str) -> int:
     match = re.match(r"(\d+)(s|min|hr|day)$", interval)
@@ -520,7 +520,7 @@ class Tasks(commands.Cog, name="tasks"):
             except (discord.Forbidden, discord.HTTPException):
                 pass
 
-            log_channel = self.bot.get_channel(self.log_channel_id)
+            log_channel = AUTOMOD_CHANNEL_ID
             banned = False
 
             try:
