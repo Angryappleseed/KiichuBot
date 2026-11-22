@@ -520,7 +520,7 @@ class Tasks(commands.Cog, name="tasks"):
             except (discord.Forbidden, discord.HTTPException):
                 pass
 
-            log_channel = AUTOMOD_CHANNEL_ID
+            log_channel = self.bot.get_channel(AUTOMOD_CHANNEL_ID)
             banned = False
 
             try:
