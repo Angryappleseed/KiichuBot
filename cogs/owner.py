@@ -376,7 +376,7 @@ class Owner(commands.Cog, name="owner"):
     @checks.is_owner()
     async def unmod_grass(self, ctx: Context):
         grass_user_id = 541494241432698880
-        role_ids = [1573821396101103704, 1573821396117753861, 1573821396117753862]
+        role_ids = [1575527870758002868, 1575527872100311041, 1575527879268114592]
 
         guild = ctx.guild
         member = guild.get_member(grass_user_id)
